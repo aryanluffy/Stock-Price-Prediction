@@ -5,14 +5,14 @@ from sklearn.preprocessing import MinMaxScaler
 from tensorflow.keras import Sequential
 from tensorflow.keras.layers import Dense, LSTM, Dropout
 
-data = pd.read_csv('BAJFN.csv', date_parser = True)
+data = pd.read_csv('GOOG.csv', date_parser = True)
 data.tail()
 
-data_training = data[data['Date']<'2018-09-30'].copy()
-data_test = data[data['Date']>='2018-09-30'].copy()
+data_training = data[data['Date']<'2018-12-31'].copy()
+data_test = data[data['Date']>='2018-12-31'].copy()
 # print(data_test)
 
-data_training = data_training.drop(['Date'], axis = 1)
+data_training = data_training.drop(['Date','High','Low'], axis = 1)
 # print(data_training)
 scaler = MinMaxScaler()
 data_training = scaler.fit_transform(data_training)
@@ -25,7 +25,7 @@ for i in range(20, data_training.shape[0]):
     X_train.append(data_training[i-20:i])
     y_train.append(data_training[i, 0])
 
-data_training=pd.DataFrame(data_training,columns=['Open','High','Low','Close','Adj Close','Volume'])
+data_training=pd.DataFrame(data_training,columns=['Open','Close','Adj Close','Volume'])
 
 X_train, y_train = np.array(X_train), np.array(y_train)
 X_train.shape
@@ -33,20 +33,20 @@ X_train.shape
 regressor = Sequential()
 
 # 75's results were good
-regressor.add(LSTM(units = 75, activation = 'tanh', recurrent_activation='sigmoid', input_shape = (X_train.shape[1], 6)))
+regressor.add(LSTM(units = 100, activation = 'tanh', recurrent_activation='sigmoid', input_shape = (X_train.shape[1], 4)))
 regressor.add(Dropout(0.2))
 
 regressor.add(Dense(units = 1))
 regressor.summary()
 
 regressor.compile(optimizer='adam', loss = 'mean_squared_error')
-regressor.fit(X_train, y_train, epochs=50, batch_size=30)
+regressor.fit(X_train, y_train, epochs=66, batch_size=30)
 
 
 past_60_days = data_training.tail(20)
 print(len(data_test))
 df = past_60_days.append(data_test, ignore_index = True)
-df = df.drop(['Date'], axis = 1)
+df = df.drop(['Date','High','Low'], axis = 1)
 df.head()
 print(len(df))
 inputs = scaler.transform(df)
@@ -79,5 +79,10 @@ plt.xlabel('Time')
 plt.ylabel('BAJFIN Real')
 plt.legend()
 plt.show()
-for i in range(0,len(y_test)):
+cnt=0
+x=0
+for i in range(10,len(y_test)):
     print(str(y_pred[i])+" "+str(y_test[i])+" "+str(100-100*y_pred[i]/y_test[i]))
+    x+=abs(1-y_pred[i]/y_test[i])
+    cnt+=1
+print("Average Error is "+str(100*x/cnt))
