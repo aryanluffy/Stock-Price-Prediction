@@ -8,7 +8,7 @@ from tensorflow.keras.layers import Dense, LSTM, Dropout
 from tensorflow.keras.callbacks import EarlyStopping
 
 def getIntradayData(ticker):
-    data=yf.download(ticker,period='60d',interval='2m',auto_adjust='True')
+    data=yf.download(ticker,period='60d',interval='5m',auto_adjust='True')
     print(data)
     file=open(ticker+'.csv','w+')
     file.write('Date,Open,High,Low,Close,Adj Close,Volume\n')
@@ -23,8 +23,8 @@ def GetPredictions(paramtype,ticker):
     data = pd.read_csv(ticker+'.csv', date_parser = True)
     data.tail()
 
-    data_training = data[data['Date']<'2020-11-30 15:59:00-05:00213'].copy()
-    data_test = data[data['Date']>='2020-11-30 15:59:00-05:00213'].copy()
+    data_training = data[data['Date']<'2020-12-03 15:58:00-05:00'].copy()
+    data_test = data[data['Date']>='2020-12-03 15:58:00-05:00'].copy()
     print(data_test)
 
     data_training = data_training.drop(['Date'], axis = 1)
@@ -55,7 +55,8 @@ def GetPredictions(paramtype,ticker):
 
     regressor.compile(optimizer='adam', loss = 'mean_squared_error')
     es = EarlyStopping(monitor='loss',patience=20,restore_best_weights=True)
-    regressor.fit(X_train, y_train, epochs=55, batch_size=30,callbacks=[es])
+    #55,100 were good 
+    regressor.fit(X_train, y_train, epochs=110, batch_size=30,callbacks=[es])
     # regressor.fit(X_train, y_train, epochs=100, batch_size=30)
 
     past_60_days = data_training.tail(20)
