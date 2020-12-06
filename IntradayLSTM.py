@@ -11,9 +11,9 @@ def getIntradayData(ticker):
     data=yf.download(ticker,period='60d',interval='5m',auto_adjust='True')
     print(data)
     file=open(ticker+'.csv','w+')
-    file.write('Date,Open,High,Low,Close,Adj Close,Volume\n')
+    file.write('Date,Open,High,Low,Close,Volume\n')
     for ind in data.index:
-        file.write(str(ind)+','+str(data['Open'][ind])+','+str(data['High'][ind])+','+str(data['Low'][ind])+','+str(data['Close'][ind])+',0,'+str(data['Volume'][ind])+'\n')
+        file.write(str(ind)+','+str(data['Open'][ind])+','+str(data['High'][ind])+','+str(data['Low'][ind])+','+str(data['Close'][ind])+','+str(data['Volume'][ind])+'\n')
     file.close()
     return 
 
@@ -23,11 +23,26 @@ def GetPredictions(paramtype,ticker):
     data = pd.read_csv(ticker+'.csv', date_parser = True)
     data.tail()
 
-    data_training = data[data['Date']<'2020-12-03 15:58:00-05:00'].copy()
-    data_test = data[data['Date']>='2020-12-03 15:58:00-05:00'].copy()
-    print(data_test)
-
+    data_training = data[data['Date']<'2020-12-03 15:25:00+05:30'].copy()
+    data_test = data[data['Date']>='2020-12-03 15:25:00+05:30'].copy()
+    # print("Training Data")
+    # print(data)
+    # print("Testing Data")
+    # print(data_test)
+    paramtypetostringmap = {}
+    paramtypetostringmap[0]='Open'
+    paramtypetostringmap[1]='High'
+    paramtypetostringmap[2]='Low'
+    paramtypetostringmap[3]='Close'
+    paramtypetostringmap[4]='Volume'
     data_training = data_training.drop(['Date'], axis = 1)
+    minval=1e9
+    maxval=-1e9
+    #Get min-max for paramtype
+    for ind in data_training.index:
+        minval=min(minval,data_training[paramtypetostringmap[paramtype]][ind])
+        maxval=max(maxval,data_training[paramtypetostringmap[paramtype]][ind])
+    # print("THE MINVAL IS:: "+str(minval))
     # print(data_training)
     scaler = MinMaxScaler()
     data_training = scaler.fit_transform(data_training)
@@ -35,12 +50,16 @@ def GetPredictions(paramtype,ticker):
 
     X_train = []
     y_train = []
-
+    # print("THE SHAPE OF TRAINING IS::")
+    print(data_training.shape)
     for i in range(20, data_training.shape[0]):
+        # print("ESORAGOTO")
+        # for j in range(0,5):
+        #     print(str(data_training[i][j]/scaler.scale_[j]))
         X_train.append(data_training[i-20:i])
         y_train.append(data_training[i, paramtype])
 
-    data_training=pd.DataFrame(data_training,columns=['Open','High','Low','Close','Adj Close','Volume'])
+    data_training=pd.DataFrame(data_training,columns=['Open','High','Low','Close','Volume'])
 
     X_train, y_train = np.array(X_train), np.array(y_train)
     X_train.shape
@@ -48,15 +67,15 @@ def GetPredictions(paramtype,ticker):
     regressor = Sequential()
     # simple early stopping
     # 75's results were good
-    regressor.add(LSTM(units = 100,activation = 'tanh',recurrent_activation='sigmoid', input_shape = (X_train.shape[1], 6)))
+    regressor.add(LSTM(units = 100,activation = 'tanh',recurrent_activation='sigmoid', input_shape = (X_train.shape[1], 5)))
 
     regressor.add(Dense(units = 1))
     regressor.summary()
 
     regressor.compile(optimizer='adam', loss = 'mean_squared_error')
     es = EarlyStopping(monitor='loss',patience=20,restore_best_weights=True)
-    #55,100 were good 
-    regressor.fit(X_train, y_train, epochs=110, batch_size=30,callbacks=[es])
+    #55,100,80 were good 
+    regressor.fit(X_train, y_train, epochs=80, batch_size=30,callbacks=[es])
     # regressor.fit(X_train, y_train, epochs=100, batch_size=30)
 
     past_60_days = data_training.tail(20)
@@ -80,8 +99,8 @@ def GetPredictions(paramtype,ticker):
     scaler.scale_
     scale = 1/scaler.scale_[paramtype]
 
-    y_pred = y_pred*scale
-    y_test = y_test*scale
+    y_pred = y_pred*scale+minval
+    y_test = y_test*scale+minval
 
     # Visualising the results
     plt.figure(figsize=(14,5))
@@ -95,6 +114,7 @@ def GetPredictions(paramtype,ticker):
     cnt=0
     x=0
     for i in range(10,len(y_test)):
+        print(str(y_test[i])+str(y_pred[i]))
         x+=abs(1-y_pred[i]/y_test[i])
         cnt+=1
     if paramtype==0:
@@ -141,12 +161,12 @@ def GetInputs(paramtype,ticker):
 def main():
     ticker=input("Give Stock name ")
     getIntradayData(ticker)
-    y_pred_low=GetPredictions(2,ticker)
-    y_pred_high=GetPredictions(1,ticker)
+    # y_pred_low=GetPredictions(2,ticker)
+    # y_pred_high=GetPredictions(1,ticker)
     # y_test_low=GetInputs(2,ticker)
     # y_test_high=GetInputs(1,ticker)
-    y_pred_open=GetPredictions(0,ticker)
-    y_pred_close=GetPredictions(3,ticker)
+    GetPredictions(0,ticker)
+    # y_pred_close=GetPredictions(3,ticker)
     # y_test_open=GetInputs(0,ticker)
     # y_test_close=GetInputs(3,ticker)
     returns=0
