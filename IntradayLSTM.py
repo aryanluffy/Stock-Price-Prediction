@@ -8,7 +8,7 @@ from tensorflow.keras.layers import Dense, LSTM, Dropout
 from tensorflow.keras.callbacks import EarlyStopping
 
 def getIntradayData(ticker):
-    data=yf.download(ticker,period='60d',interval='5m',auto_adjust='True')
+    data=yf.download(ticker,period='7d',interval='1m',auto_adjust='True')
     print(data)
     file=open(ticker+'.csv','w+')
     file.write('Date,Open,High,Low,Close,Volume\n')
@@ -23,8 +23,8 @@ def GetPredictions(paramtype,ticker):
     data = pd.read_csv(ticker+'.csv', date_parser = True)
     data.tail()
 
-    data_training = data[data['Date']<'2020-12-03 15:25:00+05:30'].copy()
-    data_test = data[data['Date']>='2020-12-03 15:25:00+05:30'].copy()
+    data_training = data[data['Date']<'2020-12-04 09:30:00-05:00'].copy()
+    data_test = data[data['Date']>='2020-12-04 09:30:00-05:00'].copy()
     # print("Training Data")
     # print(data)
     # print("Testing Data")
@@ -56,7 +56,7 @@ def GetPredictions(paramtype,ticker):
         # print("ESORAGOTO")
         # for j in range(0,5):
         #     print(str(data_training[i][j]/scaler.scale_[j]))
-        X_train.append(data_training[i-20:i])
+        X_train.append(data_training[i-20:i-1])
         y_train.append(data_training[i, paramtype])
 
     data_training=pd.DataFrame(data_training,columns=['Open','High','Low','Close','Volume'])
@@ -67,15 +67,14 @@ def GetPredictions(paramtype,ticker):
     regressor = Sequential()
     # simple early stopping
     # 75's results were good
-    regressor.add(LSTM(units = 100,activation = 'tanh',recurrent_activation='sigmoid', input_shape = (X_train.shape[1], 5)))
-
+    regressor.add(LSTM(units = 75,activation = 'tanh',recurrent_activation='sigmoid', input_shape = (X_train.shape[1], 5)))    
     regressor.add(Dense(units = 1))
     regressor.summary()
 
     regressor.compile(optimizer='adam', loss = 'mean_squared_error')
-    es = EarlyStopping(monitor='loss',patience=20,restore_best_weights=True)
+    es = EarlyStopping(monitor='loss',patience=60,restore_best_weights=True)
     #55,100,80 were good 
-    regressor.fit(X_train, y_train, epochs=80, batch_size=30,callbacks=[es])
+    regressor.fit(X_train, y_train, epochs=60, batch_size=30,callbacks=[es])
     # regressor.fit(X_train, y_train, epochs=100, batch_size=30)
 
     past_60_days = data_training.tail(20)
@@ -90,7 +89,7 @@ def GetPredictions(paramtype,ticker):
     X_test = []
     y_test = []
     for i in range(20, inputs.shape[0]):
-        X_test.append(inputs[i-20:i])
+        X_test.append(inputs[i-20:i-1])
         y_test.append(inputs[i, paramtype])
 
     X_test, y_test = np.array(X_test), np.array(y_test)
@@ -114,7 +113,7 @@ def GetPredictions(paramtype,ticker):
     cnt=0
     x=0
     for i in range(10,len(y_test)):
-        print(str(y_test[i])+str(y_pred[i]))
+        # print(str(y_test[i])+str(y_pred[i]))
         x+=abs(1-y_pred[i]/y_test[i])
         cnt+=1
     if paramtype==0:
@@ -125,24 +124,19 @@ def GetPredictions(paramtype,ticker):
         print("Average Error in Low is "+str(100*x/cnt))
     elif paramtype==3:
         print("Average Error in Close is "+str(100*x/cnt))
-    file_pred=open(ticker+' '+paramtypetostringmap[paramtype]+'price'+'predictions'+'.csv','w+')
-    file_pred.write("Actual,Predicted\n")
-    for i in range(0,len(y_pred)):
-        file_pred.write(str(float(y_test[i]))+','+str(float(y_pred[i]))+'\n')
-    file_pred.close()
-    return y_pred
+    return y_pred,y_test
 
 def GetInputs(paramtype,ticker):
     data = pd.read_csv(ticker+'.csv', date_parser = True)
     data.tail()
 
-    data_training = data[data['Date']<'2019-12-31'].copy()
-    data_test = data[data['Date']>='2019-12-31'].copy()
+    data_training = data[data['Date']<'2020-12-04 09:30:00-05:00'].copy()
+    data_test = data[data['Date']>='2020-12-04 09:30:00-05:00'].copy()
 
     data_training = data_training.drop(['Date'], axis = 1)
     scaler = MinMaxScaler()
     data_training = scaler.fit_transform(data_training)
-    data_training=pd.DataFrame(data_training,columns=['Open','High','Low','Close','Adj Close','Volume'])
+    data_training=pd.DataFrame(data_training,columns=['Open','High','Low','Close','Volume'])
     past_60_days = data_training.tail(20)
     df = past_60_days.append(data_test, ignore_index = True)
     df = df.drop(['Date'], axis = 1)
@@ -170,10 +164,21 @@ def main():
     # y_pred_high=GetPredictions(1,ticker)
     # y_test_low=GetInputs(2,ticker)
     # y_test_high=GetInputs(1,ticker)
-    GetPredictions(0,ticker)
+    y_pred,y_test=GetPredictions(0,ticker)
+    # for i in range(0,9):
+    #     y_pred_temp,y_test=GetPredictions(0,ticker)
+    #     y_pred=y_pred+y_pred_temp
+    # y_pred=y_pred/10
+    for i in range(0,len(y_test)):
+        print(str(y_pred[i])+' '+str(y_test[i]))
     # y_pred_close=GetPredictions(3,ticker)
     # y_test_open=GetInputs(0,ticker)
     # y_test_close=GetInputs(3,ticker)
+    file_pred=open(ticker+' '+'Open'+'Price'+'Predictions'+'.csv','w+')
+    file_pred.write("Actual,Predicted\n")
+    for i in range(0,len(y_pred)):
+        file_pred.write(str(float(y_test[i]))+','+str(float(y_pred[i]))+'\n')
+    file_pred.close()
     returns=0
 
     # for i in range(10,len(y_test_low)):
@@ -181,8 +186,13 @@ def main():
     #     if y_pred_low[i]>y_test_low[i] and y_pred_high[i]<y_test_high[i]:
     #         returns+=100*(1-y_pred_low[i]/y_pred_high[i])
 
-    # for i in range(10,len(y_test_open)):
-    #     returns+=abs(1-y_test_close[i]/y_test_open[i])
+    error=0.0
+    cnt=0
+    for i in range(10,len(y_pred)):
+        error=error+abs(1-y_pred[i]/y_test[i])
+        cnt+=1
+    print("The Average Error is ::")
+    print(100*error/cnt)
 
     # print("The returns are "+str(returns))
     return
