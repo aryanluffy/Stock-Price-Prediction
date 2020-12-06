@@ -125,6 +125,11 @@ def GetPredictions(paramtype,ticker):
         print("Average Error in Low is "+str(100*x/cnt))
     elif paramtype==3:
         print("Average Error in Close is "+str(100*x/cnt))
+    file_pred=open(ticker+' '+paramtypetostringmap[paramtype]+'price'+'predictions'+'.csv','w+')
+    file_pred.write("Actual,Predicted\n")
+    for i in range(0,len(y_pred)):
+        file_pred.write(str(float(y_test[i]))+','+str(float(y_pred[i]))+'\n')
+    file_pred.close()
     return y_pred
 
 def GetInputs(paramtype,ticker):
