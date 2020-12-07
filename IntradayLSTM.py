@@ -8,7 +8,7 @@ from tensorflow.keras.layers import Dense, LSTM, Dropout
 from tensorflow.keras.callbacks import EarlyStopping
 
 def getIntradayData(ticker):
-    data=yf.download(ticker,period='7d',interval='1m',auto_adjust='True')
+    data=yf.download(ticker,period='60d',interval='5m',auto_adjust='True')
     print(data)
     file=open(ticker+'.csv','w+')
     file.write('Date,Open,High,Low,Close,Volume\n')
@@ -17,31 +17,45 @@ def getIntradayData(ticker):
     file.close()
     return 
 
+def dateTimeToTime(datetime):
+    x=0.0
+    #11,12,14,15
+    x=((ord(datetime[11])-ord('0'))*10+ord(datetime[12])-ord('0'))*60+(ord(datetime[14])-ord('0'))*10+ord(datetime[15])-ord('0')
+    return x
+
 
 #paramtype corresponds to open,low,high
 def GetPredictions(paramtype,ticker):
+    paramtypetostringmap = {}
+    paramtypetostringmap[0]='Date'
+    paramtypetostringmap[1]='Open'
+    paramtypetostringmap[2]='High'
+    paramtypetostringmap[3]='Low'
+    paramtypetostringmap[4]='Close'
+    paramtypetostringmap[5]='Volume'
+    paramtypetostringmap[6]='OpenHighDiff'
     data = pd.read_csv(ticker+'.csv', date_parser = True)
     data.tail()
-
+    ohdiff=pd.Series([])
+    for ind in data.index:
+        ohdiff[ind]=data['High'][ind]-data['Open'][ind]
+        # print(str(ind)+' '+str(ohdiff[ind]))
+    data.insert(6,paramtypetostringmap[6],ohdiff)
     data_training = data[data['Date']<'2020-12-04 09:30:00-05:00'].copy()
     data_test = data[data['Date']>='2020-12-04 09:30:00-05:00'].copy()
     # print("Training Data")
     # print(data)
     # print("Testing Data")
     # print(data_test)
-    paramtypetostringmap = {}
-    paramtypetostringmap[0]='Open'
-    paramtypetostringmap[1]='High'
-    paramtypetostringmap[2]='Low'
-    paramtypetostringmap[3]='Close'
-    paramtypetostringmap[4]='Volume'
-    data_training = data_training.drop(['Date'], axis = 1)
+    data_training_dates=pd.Series([])
+    for ind in data_training.index:
+        data_training_dates[ind]=data_training['Date'][ind]
+        data_training['Date'][ind]=dateTimeToTime(data_training['Date'][ind])
+    # data_training = data_training.drop(['Date'], axis = 1)
     minval=1e9
-    maxval=-1e9
     #Get min-max for paramtype
     for ind in data_training.index:
-        minval=min(minval,data_training[paramtypetostringmap[paramtype]][ind])
-        maxval=max(maxval,data_training[paramtypetostringmap[paramtype]][ind])
+        minval=min(minval,data_training[paramtypetostringmap[6]][ind])
     # print("THE MINVAL IS:: "+str(minval))
     # print(data_training)
     scaler = MinMaxScaler()
@@ -51,15 +65,18 @@ def GetPredictions(paramtype,ticker):
     X_train = []
     y_train = []
     # print("THE SHAPE OF TRAINING IS::")
-    print(data_training.shape)
-    for i in range(20, data_training.shape[0]):
+    # print(data_training.shape)
+    for i in range(12, data_training.shape[0]):
         # print("ESORAGOTO")
         # for j in range(0,5):
         #     print(str(data_training[i][j]/scaler.scale_[j]))
-        X_train.append(data_training[i-20:i-1])
-        y_train.append(data_training[i, paramtype])
+        temp=data_training[i-12:i-1]
+        if temp[10][0]<0.2:
+            continue
+        X_train.append(temp)
+        y_train.append(data_training[i, 6])
 
-    data_training=pd.DataFrame(data_training,columns=['Open','High','Low','Close','Volume'])
+    data_training=pd.DataFrame(data_training,columns=['Date','Open','High','Low','Close','Volume',paramtypetostringmap[6]])
 
     X_train, y_train = np.array(X_train), np.array(y_train)
     X_train.shape
@@ -67,36 +84,43 @@ def GetPredictions(paramtype,ticker):
     regressor = Sequential()
     # simple early stopping
     # 75's results were good
-    regressor.add(LSTM(units = 75,activation = 'tanh',recurrent_activation='sigmoid', input_shape = (X_train.shape[1], 5)))    
+    regressor.add(LSTM(units = 150,activation = 'tanh',recurrent_activation='sigmoid', input_shape = (X_train.shape[1], 7)))    
     regressor.add(Dense(units = 1))
     regressor.summary()
 
     regressor.compile(optimizer='adam', loss = 'mean_squared_error')
-    es = EarlyStopping(monitor='loss',patience=60,restore_best_weights=True)
+    es = EarlyStopping(monitor='loss',patience=100,restore_best_weights=True)
     #55,100,80 were good 
-    regressor.fit(X_train, y_train, epochs=60, batch_size=30,callbacks=[es])
+    regressor.fit(X_train, y_train, epochs=100, batch_size=30,callbacks=[es])
     # regressor.fit(X_train, y_train, epochs=100, batch_size=30)
 
-    past_60_days = data_training.tail(20)
-    print(len(data_test))
+    past_60_days = data_training.tail(12)
+    # print(len(data_test))
+    for ind in data_test.index:
+        data_test['Date'][ind]=dateTimeToTime(data_test['Date'][ind])
     df = past_60_days.append(data_test, ignore_index = True)
-    df = df.drop(['Date'], axis = 1)
+    
+    # df = df.drop(['Date'], axis = 1)
     df.head()
-    print(len(df))
+    # print(len(df))
     inputs = scaler.transform(df)
     inputs
 
     X_test = []
     y_test = []
-    for i in range(20, inputs.shape[0]):
-        X_test.append(inputs[i-20:i-1])
-        y_test.append(inputs[i, paramtype])
+    for i in range(12, inputs.shape[0]):
+        temp=inputs[i-12:i-1]
+        if temp[10][0]<0.2:
+            continue
+        X_test.append(temp)
+        y_test.append(inputs[i,6])
+        # print("FUCKKKKKK "+str(inputs[i,5]))
 
     X_test, y_test = np.array(X_test), np.array(y_test)
 
     y_pred = regressor.predict(X_test)
     scaler.scale_
-    scale = 1/scaler.scale_[paramtype]
+    scale = 1/scaler.scale_[6]
 
     y_pred = y_pred*scale+minval
     y_test = y_test*scale+minval
@@ -186,13 +210,13 @@ def main():
     #     if y_pred_low[i]>y_test_low[i] and y_pred_high[i]<y_test_high[i]:
     #         returns+=100*(1-y_pred_low[i]/y_pred_high[i])
 
-    error=0.0
-    cnt=0
-    for i in range(10,len(y_pred)):
-        error=error+abs(1-y_pred[i]/y_test[i])
-        cnt+=1
-    print("The Average Error is ::")
-    print(100*error/cnt)
+    # error=0.0
+    # cnt=0
+    # for i in range(20,len(y_pred)):
+    #     error=error+abs(1-y_pred[i]/y_test[i])
+    #     cnt+=1
+    # print("The Average Error is ::")
+    # print(100*error/cnt)
 
     # print("The returns are "+str(returns))
     return
