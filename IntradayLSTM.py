@@ -84,14 +84,14 @@ def GetPredictions(paramtype,ticker):
     regressor = Sequential()
     # simple early stopping
     # 75's results were good
-    regressor.add(LSTM(units = 150,activation = 'tanh',recurrent_activation='sigmoid', input_shape = (X_train.shape[1], 7)))    
+    regressor.add(LSTM(units = 50,activation = 'tanh',recurrent_activation='sigmoid', input_shape = (X_train.shape[1], 7)))    
     regressor.add(Dense(units = 1))
     regressor.summary()
 
     regressor.compile(optimizer='adam', loss = 'mean_squared_error')
     es = EarlyStopping(monitor='loss',patience=100,restore_best_weights=True)
     #55,100,80 were good 
-    regressor.fit(X_train, y_train, epochs=100, batch_size=30,callbacks=[es])
+    regressor.fit(X_train, y_train, epochs=50, batch_size=30,callbacks=[es])
     # regressor.fit(X_train, y_train, epochs=100, batch_size=30)
 
     past_60_days = data_training.tail(12)
