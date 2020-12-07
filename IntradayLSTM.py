@@ -40,9 +40,9 @@ def GetPredictions(paramtype,ticker):
     for ind in data.index:
         ohdiff[ind]=data['High'][ind]-data['Open'][ind]
         # print(str(ind)+' '+str(ohdiff[ind]))
-    data.insert(6,paramtypetostringmap[6],ohdiff)
-    data_training = data[data['Date']<'2020-12-04 09:30:00-05:00'].copy()
-    data_test = data[data['Date']>='2020-12-04 09:30:00-05:00'].copy()
+    # data.insert(6,paramtypetostringmap[6],ohdiff)
+    data_training = data[data['Date']<'2020-11-30 09:30:00-05:00'].copy()
+    data_test = data[data['Date']>='2020-11-30 09:30:00-05:00'].copy()
     # print("Training Data")
     # print(data)
     # print("Testing Data")
@@ -55,7 +55,7 @@ def GetPredictions(paramtype,ticker):
     minval=1e9
     #Get min-max for paramtype
     for ind in data_training.index:
-        minval=min(minval,data_training[paramtypetostringmap[6]][ind])
+        minval=min(minval,data_training[paramtypetostringmap[1]][ind])
     # print("THE MINVAL IS:: "+str(minval))
     # print(data_training)
     scaler = MinMaxScaler()
@@ -66,17 +66,17 @@ def GetPredictions(paramtype,ticker):
     y_train = []
     # print("THE SHAPE OF TRAINING IS::")
     # print(data_training.shape)
-    for i in range(12, data_training.shape[0]):
+    for i in range(30, data_training.shape[0]):
         # print("ESORAGOTO")
         # for j in range(0,5):
         #     print(str(data_training[i][j]/scaler.scale_[j]))
-        temp=data_training[i-12:i-1]
-        if temp[10][0]<0.2:
-            continue
+        temp=data_training[i-30:i-1]
+        # if temp[10][0]<0.2:
+        #     continue
         X_train.append(temp)
-        y_train.append(data_training[i, 6])
+        y_train.append(data_training[i, 1])
 
-    data_training=pd.DataFrame(data_training,columns=['Date','Open','High','Low','Close','Volume',paramtypetostringmap[6]])
+    data_training=pd.DataFrame(data_training,columns=['Date','Open','High','Low','Close','Volume'])
 
     X_train, y_train = np.array(X_train), np.array(y_train)
     X_train.shape
@@ -84,17 +84,20 @@ def GetPredictions(paramtype,ticker):
     regressor = Sequential()
     # simple early stopping
     # 75's results were good
-    regressor.add(LSTM(units = 50,activation = 'tanh',recurrent_activation='sigmoid', input_shape = (X_train.shape[1], 7)))    
+    # regressor.add(LSTM(units = 60,activation = 'tanh',recurrent_activation='sigmoid', return_sequences=True ,input_shape = (X_train.shape[1], 7)))    
+    # regressor.add(Dropout(0.2))
+    regressor.add(LSTM(units = 60,activation = 'sigmoid',recurrent_activation='tanh', input_shape = (X_train.shape[1], 6)))
+    # regressor.add(Dropout(0.2))
     regressor.add(Dense(units = 1))
     regressor.summary()
 
     regressor.compile(optimizer='adam', loss = 'mean_squared_error')
     es = EarlyStopping(monitor='loss',patience=100,restore_best_weights=True)
     #55,100,80 were good 
-    regressor.fit(X_train, y_train, epochs=50, batch_size=30,callbacks=[es])
+    regressor.fit(X_train, y_train, epochs=5, batch_size=30,callbacks=[es])
     # regressor.fit(X_train, y_train, epochs=100, batch_size=30)
 
-    past_60_days = data_training.tail(12)
+    past_60_days = data_training.tail(30)
     # print(len(data_test))
     for ind in data_test.index:
         data_test['Date'][ind]=dateTimeToTime(data_test['Date'][ind])
@@ -108,19 +111,19 @@ def GetPredictions(paramtype,ticker):
 
     X_test = []
     y_test = []
-    for i in range(12, inputs.shape[0]):
-        temp=inputs[i-12:i-1]
-        if temp[10][0]<0.2:
-            continue
+    for i in range(30, inputs.shape[0]):
+        temp=inputs[i-30:i-1]
+        # if temp[10][0]<0.2:
+        #     continue
         X_test.append(temp)
-        y_test.append(inputs[i,6])
+        y_test.append(inputs[i,1])
         # print("FUCKKKKKK "+str(inputs[i,5]))
 
     X_test, y_test = np.array(X_test), np.array(y_test)
 
     y_pred = regressor.predict(X_test)
     scaler.scale_
-    scale = 1/scaler.scale_[6]
+    scale = 1/scaler.scale_[1]
 
     y_pred = y_pred*scale+minval
     y_test = y_test*scale+minval
@@ -183,7 +186,7 @@ def GetInputs(paramtype,ticker):
 
 def main():
     ticker=input("Give Stock name ")
-    getIntradayData(ticker)
+    # getIntradayData(ticker)
     # y_pred_low=GetPredictions(2,ticker)
     # y_pred_high=GetPredictions(1,ticker)
     # y_test_low=GetInputs(2,ticker)

@@ -42,13 +42,13 @@ while True:
         print(name)
 
         token = trd_portfolio[name]['token']
-        from_date = datetime.date(2019, 5, 22)
-        to_date = datetime.date(2019, 6, 22)
+        from_date = datetime.date(2020, 10, 22)
+        to_date = datetime.date(2020, 12, 7)
 
         main_record = []
         while True:
 
-            records = kite.historical_data(token, from_date, to_date, interval)
+            records = kite.historical_data(token, from_date, to_date, '5minute')
             print(len(records))
             #print("got data",trd_portfolio[token])
 
@@ -62,6 +62,6 @@ while True:
 
         kk = json.dumps(main_record, default=myconverter)
         # print(kk)
-        open(str(name)+".json", "w+").write(kk)
+        open(str(name)+str(from_date)+".json", "w+").write(kk)
         # open(str(trd_portfolio[token])+".txt","w+")
     break
