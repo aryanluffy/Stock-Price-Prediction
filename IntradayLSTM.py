@@ -41,13 +41,24 @@ def GetPredictions(paramtype,ticker):
     paramtypetostringmap[5]='Volume'
     paramtypetostringmap[6]='Weekday'
     paramtypetostringmap[7]='DayOfMonth'
+    paramtypetostringmap[8]='VWAP'
     data = pd.read_csv(ticker+'.csv', date_parser = True)
     data.tail()
     # ohdiff=pd.Series([])
     wkday=pd.Series([])
     dayofmonth=pd.Series([])
+    vwap=pd.Series([])
+    vol=0
+    weightedsum=0
     for ind in data.index:
         # ohdiff[ind]=data['High'][ind]-data['Open'][ind]
+        if data['Date'][ind][11:19]=='09:15:00':
+            vol=data['Volume'][ind]
+            weightedsum=data['Volume'][ind]*data['Close'][ind]
+        else:
+            vol+=data['Volume'][ind]
+            weightedsum+=data['Volume'][ind]*data['Close'][ind]
+        vwap[ind]=weightedsum/vol
         datestring=data['Date'][ind][0:4]+' '+data['Date'][ind][5:7]+' '+data['Date'][ind][8:10]
         # datestring[4]=' '
         # datestring[7]=' '
@@ -56,6 +67,7 @@ def GetPredictions(paramtype,ticker):
         # print(str(ind)+' '+str(ohdiff[ind]))
     data.insert(6,paramtypetostringmap[6],wkday)
     data.insert(7,paramtypetostringmap[7],dayofmonth)
+    data.insert(8,paramtypetostringmap[8],vwap)
     data_training = data[data['Date']<'2020-11-30 09:30:00-05:00'].copy()
     data_test = data[data['Date']>='2020-11-30 09:30:00-05:00'].copy()
     # print("Training Data")
@@ -81,17 +93,17 @@ def GetPredictions(paramtype,ticker):
     y_train = []
     # print("THE SHAPE OF TRAINING IS::")
     # print(data_training.shape)
-    for i in range(30, data_training.shape[0]):
+    for i in range(7, data_training.shape[0]):
         # print("ESORAGOTO")
         # for j in range(0,5):
         #     print(str(data_training[i][j]/scaler.scale_[j]))
-        temp=data_training[i-30:i-1]
+        temp=data_training[i-7:i-1]
         # if temp[10][0]<0.2:
         #     continue
         X_train.append(temp)
         y_train.append(data_training[i, 1])
 
-    data_training=pd.DataFrame(data_training,columns=['Date','Open','High','Low','Close','Volume',paramtypetostringmap[6],paramtypetostringmap[7]])
+    data_training=pd.DataFrame(data_training,columns=['Date','Open','High','Low','Close','Volume',paramtypetostringmap[6],paramtypetostringmap[7],paramtypetostringmap[8]])
 
     X_train, y_train = np.array(X_train), np.array(y_train)
     X_train.shape
@@ -101,7 +113,7 @@ def GetPredictions(paramtype,ticker):
     # 75's results were good
     # regressor.add(LSTM(units = 60,activation = 'tanh',recurrent_activation='sigmoid', return_sequences=True ,input_shape = (X_train.shape[1], 7)))    
     # regressor.add(Dropout(0.2))
-    regressor.add(LSTM(units = 60,activation = 'sigmoid',recurrent_activation='tanh', input_shape = (X_train.shape[1], 8)))
+    regressor.add(LSTM(units = 60,activation = 'sigmoid',recurrent_activation='tanh', input_shape = (X_train.shape[1], 9)))
     # regressor.add(Dropout(0.2))
     regressor.add(Dense(units = 1))
     regressor.summary()
@@ -112,7 +124,7 @@ def GetPredictions(paramtype,ticker):
     regressor.fit(X_train, y_train, epochs=20, batch_size=30,callbacks=[es])
     # regressor.fit(X_train, y_train, epochs=100, batch_size=30)
 
-    past_60_days = data_training.tail(30)
+    past_60_days = data_training.tail(7)
     # print(len(data_test))
     for ind in data_test.index:
         data_test['Date'][ind]=dateTimeToTime(data_test['Date'][ind])
@@ -126,8 +138,8 @@ def GetPredictions(paramtype,ticker):
 
     X_test = []
     y_test = []
-    for i in range(30, inputs.shape[0]):
-        temp=inputs[i-30:i-1]
+    for i in range(7, inputs.shape[0]):
+        temp=inputs[i-7:i-1]
         # if temp[10][0]<0.2:
         #     continue
         X_test.append(temp)
@@ -140,8 +152,8 @@ def GetPredictions(paramtype,ticker):
     scaler.scale_
     scale = 1/scaler.scale_[1]
 
-    y_pred = y_pred*scale
-    y_test = y_test*scale
+    y_pred = y_pred*scale+minval
+    y_test = y_test*scale+minval
 
     # Visualising the results
     plt.figure(figsize=(14,5))
@@ -229,14 +241,18 @@ def main():
     #     if y_pred_low[i]>y_test_low[i] and y_pred_high[i]<y_test_high[i]:
     #         returns+=100*(1-y_pred_low[i]/y_pred_high[i])
 
-    # error=0.0
+    variance=0.0
+    avg=0
     cnt=0
     for i in range(20,len(y_pred)):
         mse=mse+(y_pred[i]-y_test[i])*(y_pred[i]-y_test[i])
+        avg=avg+y_test[i]
         cnt+=1
-    mse=mse/cnt
-    print("The RMSE is ::")
-    print(mse**0.5)
+    avg=avg/cnt
+    for i in range(20,len(y_pred)):
+        variance=(y_test[i]-avg)*(y_test[i]-avg)+variance
+    print("r^2 is")
+    print(1-mse/variance)
 
     # print("The returns are "+str(returns))
     return
