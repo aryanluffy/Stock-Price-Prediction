@@ -42,16 +42,41 @@ def GetPredictions(paramtype,ticker):
     paramtypetostringmap[6]='Weekday'
     paramtypetostringmap[7]='DayOfMonth'
     paramtypetostringmap[8]='VWAP'
+    paramtypetostringmap[9]='PrevLow'
+    paramtypetostringmap[10]='PrevHigh'
+    daylow={}
+    dayhigh={}
     data = pd.read_csv(ticker+'.csv', date_parser = True)
     data.tail()
     # ohdiff=pd.Series([])
     wkday=pd.Series([])
     dayofmonth=pd.Series([])
     vwap=pd.Series([])
+    prevlow=pd.Series([])
+    prevhigh=pd.Series([])
     vol=0
     weightedsum=0
+    currmin=0
+    currmax=0
     for ind in data.index:
         # ohdiff[ind]=data['High'][ind]-data['Open'][ind]
+        if data['Date'][ind][11:19]=='09:15:00':
+            prevhigh[ind]=currmax
+            prevlow[ind]=currmin
+        else:
+            prevlow[ind]=prevlow[ind-1]
+            prevhigh[ind]=prevhigh[ind-1]
+        currdate=data['Date'][ind][0:10]
+        if currdate in daylow:
+            daylow[currdate]=min(daylow[currdate],data['Low'][ind])
+            dayhigh[currdate]=max(dayhigh[currdate],data['High'][ind])
+            currmin=min(currmin,daylow[currdate])
+            currmax=max(currmax,dayhigh[currdate])
+        else:
+            daylow[currdate]=data['Low'][ind]
+            dayhigh[currdate]=data['High'][ind]
+            currmin=daylow[currdate]
+            currmax=dayhigh[currdate]
         if data['Date'][ind][11:19]=='09:15:00':
             vol=data['Volume'][ind]
             weightedsum=data['Volume'][ind]*data['Close'][ind]
@@ -68,6 +93,8 @@ def GetPredictions(paramtype,ticker):
     data.insert(6,paramtypetostringmap[6],wkday)
     data.insert(7,paramtypetostringmap[7],dayofmonth)
     data.insert(8,paramtypetostringmap[8],vwap)
+    data.insert(9,paramtypetostringmap[9],prevlow)
+    data.insert(10,paramtypetostringmap[10],prevhigh)
     data_training = data[data['Date']<'2020-11-30 09:30:00-05:00'].copy()
     data_test = data[data['Date']>='2020-11-30 09:30:00-05:00'].copy()
     # print("Training Data")
@@ -93,17 +120,19 @@ def GetPredictions(paramtype,ticker):
     y_train = []
     # print("THE SHAPE OF TRAINING IS::")
     # print(data_training.shape)
-    for i in range(7, data_training.shape[0]):
+    for i in range(15, data_training.shape[0]):
         # print("ESORAGOTO")
         # for j in range(0,5):
         #     print(str(data_training[i][j]/scaler.scale_[j]))
-        temp=data_training[i-7:i-1]
+        temp=data_training[i-15:i-1]
         # if temp[10][0]<0.2:
         #     continue
         X_train.append(temp)
         y_train.append(data_training[i, 1])
-
-    data_training=pd.DataFrame(data_training,columns=['Date','Open','High','Low','Close','Volume',paramtypetostringmap[6],paramtypetostringmap[7],paramtypetostringmap[8]])
+    Parameters=[]
+    for x in range(0,11):
+        Parameters.append(paramtypetostringmap[x])
+    data_training=pd.DataFrame(data_training,columns=Parameters)
 
     X_train, y_train = np.array(X_train), np.array(y_train)
     X_train.shape
@@ -113,7 +142,7 @@ def GetPredictions(paramtype,ticker):
     # 75's results were good
     # regressor.add(LSTM(units = 60,activation = 'tanh',recurrent_activation='sigmoid', return_sequences=True ,input_shape = (X_train.shape[1], 7)))    
     # regressor.add(Dropout(0.2))
-    regressor.add(LSTM(units = 60,activation = 'sigmoid',recurrent_activation='tanh', input_shape = (X_train.shape[1], 9)))
+    regressor.add(LSTM(units = 100,activation = 'sigmoid',recurrent_activation='tanh', input_shape = (X_train.shape[1], 11)))
     # regressor.add(Dropout(0.2))
     regressor.add(Dense(units = 1))
     regressor.summary()
@@ -121,10 +150,10 @@ def GetPredictions(paramtype,ticker):
     regressor.compile(optimizer='adam', loss = 'mean_squared_error')
     es = EarlyStopping(monitor='loss',patience=100,restore_best_weights=True)
     #55,100,80 were good 
-    regressor.fit(X_train, y_train, epochs=20, batch_size=30,callbacks=[es])
+    regressor.fit(X_train, y_train, epochs=60, batch_size=30,callbacks=[es])
     # regressor.fit(X_train, y_train, epochs=100, batch_size=30)
 
-    past_60_days = data_training.tail(7)
+    past_60_days = data_training.tail(15)
     # print(len(data_test))
     for ind in data_test.index:
         data_test['Date'][ind]=dateTimeToTime(data_test['Date'][ind])
@@ -138,8 +167,8 @@ def GetPredictions(paramtype,ticker):
 
     X_test = []
     y_test = []
-    for i in range(7, inputs.shape[0]):
-        temp=inputs[i-7:i-1]
+    for i in range(15, inputs.shape[0]):
+        temp=inputs[i-15:i-1]
         # if temp[10][0]<0.2:
         #     continue
         X_test.append(temp)
