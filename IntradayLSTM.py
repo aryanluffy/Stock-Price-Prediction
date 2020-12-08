@@ -6,6 +6,12 @@ from sklearn.preprocessing import MinMaxScaler
 from tensorflow.keras import Sequential
 from tensorflow.keras.layers import Dense, LSTM, Dropout
 from tensorflow.keras.callbacks import EarlyStopping
+import calendar
+
+def findDay(date): 
+    year, month, day = (int(i) for i in date.split(' '))     
+    dayNumber = calendar.weekday(year, month, day) 
+    return dayNumber 
 
 def getIntradayData(ticker):
     data=yf.download(ticker,period='60d',interval='5m',auto_adjust='True')
@@ -33,14 +39,23 @@ def GetPredictions(paramtype,ticker):
     paramtypetostringmap[3]='Low'
     paramtypetostringmap[4]='Close'
     paramtypetostringmap[5]='Volume'
-    paramtypetostringmap[6]='OpenHighDiff'
+    paramtypetostringmap[6]='Weekday'
+    paramtypetostringmap[7]='DayOfMonth'
     data = pd.read_csv(ticker+'.csv', date_parser = True)
     data.tail()
-    ohdiff=pd.Series([])
+    # ohdiff=pd.Series([])
+    wkday=pd.Series([])
+    dayofmonth=pd.Series([])
     for ind in data.index:
-        ohdiff[ind]=data['High'][ind]-data['Open'][ind]
+        # ohdiff[ind]=data['High'][ind]-data['Open'][ind]
+        datestring=data['Date'][ind][0:4]+' '+data['Date'][ind][5:7]+' '+data['Date'][ind][8:10]
+        # datestring[4]=' '
+        # datestring[7]=' '
+        wkday[ind]=findDay(datestring)
+        dayofmonth[ind]=(ord(data['Date'][ind][8])-ord('0'))*10+ord(data['Date'][ind][9])-ord('0')
         # print(str(ind)+' '+str(ohdiff[ind]))
-    # data.insert(6,paramtypetostringmap[6],ohdiff)
+    data.insert(6,paramtypetostringmap[6],wkday)
+    data.insert(7,paramtypetostringmap[7],dayofmonth)
     data_training = data[data['Date']<'2020-11-30 09:30:00-05:00'].copy()
     data_test = data[data['Date']>='2020-11-30 09:30:00-05:00'].copy()
     # print("Training Data")
@@ -76,7 +91,7 @@ def GetPredictions(paramtype,ticker):
         X_train.append(temp)
         y_train.append(data_training[i, 1])
 
-    data_training=pd.DataFrame(data_training,columns=['Date','Open','High','Low','Close','Volume'])
+    data_training=pd.DataFrame(data_training,columns=['Date','Open','High','Low','Close','Volume',paramtypetostringmap[6],paramtypetostringmap[7]])
 
     X_train, y_train = np.array(X_train), np.array(y_train)
     X_train.shape
@@ -86,7 +101,7 @@ def GetPredictions(paramtype,ticker):
     # 75's results were good
     # regressor.add(LSTM(units = 60,activation = 'tanh',recurrent_activation='sigmoid', return_sequences=True ,input_shape = (X_train.shape[1], 7)))    
     # regressor.add(Dropout(0.2))
-    regressor.add(LSTM(units = 60,activation = 'sigmoid',recurrent_activation='tanh', input_shape = (X_train.shape[1], 6)))
+    regressor.add(LSTM(units = 60,activation = 'sigmoid',recurrent_activation='tanh', input_shape = (X_train.shape[1], 8)))
     # regressor.add(Dropout(0.2))
     regressor.add(Dense(units = 1))
     regressor.summary()
@@ -94,7 +109,7 @@ def GetPredictions(paramtype,ticker):
     regressor.compile(optimizer='adam', loss = 'mean_squared_error')
     es = EarlyStopping(monitor='loss',patience=100,restore_best_weights=True)
     #55,100,80 were good 
-    regressor.fit(X_train, y_train, epochs=5, batch_size=30,callbacks=[es])
+    regressor.fit(X_train, y_train, epochs=20, batch_size=30,callbacks=[es])
     # regressor.fit(X_train, y_train, epochs=100, batch_size=30)
 
     past_60_days = data_training.tail(30)
@@ -125,8 +140,8 @@ def GetPredictions(paramtype,ticker):
     scaler.scale_
     scale = 1/scaler.scale_[1]
 
-    y_pred = y_pred*scale+minval
-    y_test = y_test*scale+minval
+    y_pred = y_pred*scale
+    y_test = y_test*scale
 
     # Visualising the results
     plt.figure(figsize=(14,5))
@@ -198,6 +213,7 @@ def main():
     # y_pred=y_pred/10
     for i in range(0,len(y_test)):
         print(str(y_pred[i])+' '+str(y_test[i]))
+    mse=0
     # y_pred_close=GetPredictions(3,ticker)
     # y_test_open=GetInputs(0,ticker)
     # y_test_close=GetInputs(3,ticker)
@@ -214,12 +230,13 @@ def main():
     #         returns+=100*(1-y_pred_low[i]/y_pred_high[i])
 
     # error=0.0
-    # cnt=0
-    # for i in range(20,len(y_pred)):
-    #     error=error+abs(1-y_pred[i]/y_test[i])
-    #     cnt+=1
-    # print("The Average Error is ::")
-    # print(100*error/cnt)
+    cnt=0
+    for i in range(20,len(y_pred)):
+        mse=mse+(y_pred[i]-y_test[i])*(y_pred[i]-y_test[i])
+        cnt+=1
+    mse=mse/cnt
+    print("The RMSE is ::")
+    print(mse**0.5)
 
     # print("The returns are "+str(returns))
     return
