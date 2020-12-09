@@ -45,6 +45,7 @@ def GetPredictions(paramtype,ticker):
     paramtypetostringmap[8]='PrevLow'
     paramtypetostringmap[9]='PrevHigh'
     paramtypetostringmap[10]='PrevClose'
+    paramtypetostringmap[11]='RSI'
     daylow={}
     dayhigh={}
     data = pd.read_csv(ticker+'.csv', date_parser = True)
@@ -56,6 +57,7 @@ def GetPredictions(paramtype,ticker):
     prevlow=pd.Series([])
     prevhigh=pd.Series([])
     prevclose=pd.Series([])
+    rsi=pd.Series([])
     vol=0
     weightedsum=0
     currmin=0
@@ -71,6 +73,24 @@ def GetPredictions(paramtype,ticker):
             prevlow[ind]=prevlow[ind-1]
             prevhigh[ind]=prevhigh[ind-1]
             prevclose[ind]=prevclose[ind-1]
+        if len(prevclose)<13:
+            rsi[ind]=0
+        else:
+            up=0
+            down=0
+            for j in range(ind-11,ind+1):
+                if prevclose[j]-prevclose[j-1]>0:
+                    up+=prevclose[j]-prevclose[j-1]
+                else:
+                    down+=prevclose[j-1]-prevclose[j]
+            if data['Close'][ind]-prevclose[ind]>0:
+                up+=data['Close'][ind]-prevclose[ind]
+            else:
+                down-=data['Close'][ind]-prevclose[ind]
+            if up+down>0:
+                rsi[ind]=up/(up+down)
+            else:
+                rsi[ind]=0
         currdate=data['Date'][ind][0:10]
         currclose=data['Close'][ind]
         if currdate in daylow:
@@ -102,6 +122,7 @@ def GetPredictions(paramtype,ticker):
     data.insert(8,paramtypetostringmap[8],prevlow)
     data.insert(9,paramtypetostringmap[9],prevhigh)
     data.insert(10,paramtypetostringmap[10],prevclose)
+    data.insert(11,paramtypetostringmap[11],rsi)
     data_training = data[data['Date']<'2020-11-30 09:30:00-05:00'].copy()
     data_test = data[data['Date']>='2020-11-30 09:30:00-05:00'].copy()
     # print("Training Data")
