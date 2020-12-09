@@ -41,9 +41,10 @@ def GetPredictions(paramtype,ticker):
     paramtypetostringmap[5]='Volume'
     paramtypetostringmap[6]='Weekday'
     paramtypetostringmap[7]='DayOfMonth'
-    paramtypetostringmap[8]='VWAP'
-    paramtypetostringmap[9]='PrevLow'
-    paramtypetostringmap[10]='PrevHigh'
+    # paramtypetostringmap[8]='VWAP'
+    paramtypetostringmap[8]='PrevLow'
+    paramtypetostringmap[9]='PrevHigh'
+    paramtypetostringmap[10]='PrevClose'
     daylow={}
     dayhigh={}
     data = pd.read_csv(ticker+'.csv', date_parser = True)
@@ -54,19 +55,24 @@ def GetPredictions(paramtype,ticker):
     vwap=pd.Series([])
     prevlow=pd.Series([])
     prevhigh=pd.Series([])
+    prevclose=pd.Series([])
     vol=0
     weightedsum=0
     currmin=0
     currmax=0
+    currclose=0
     for ind in data.index:
         # ohdiff[ind]=data['High'][ind]-data['Open'][ind]
         if data['Date'][ind][11:19]=='09:15:00':
             prevhigh[ind]=currmax
             prevlow[ind]=currmin
+            prevclose[ind]=currclose
         else:
             prevlow[ind]=prevlow[ind-1]
             prevhigh[ind]=prevhigh[ind-1]
+            prevclose[ind]=prevclose[ind-1]
         currdate=data['Date'][ind][0:10]
+        currclose=data['Close'][ind]
         if currdate in daylow:
             daylow[currdate]=min(daylow[currdate],data['Low'][ind])
             dayhigh[currdate]=max(dayhigh[currdate],data['High'][ind])
@@ -92,9 +98,10 @@ def GetPredictions(paramtype,ticker):
         # print(str(ind)+' '+str(ohdiff[ind]))
     data.insert(6,paramtypetostringmap[6],wkday)
     data.insert(7,paramtypetostringmap[7],dayofmonth)
-    data.insert(8,paramtypetostringmap[8],vwap)
-    data.insert(9,paramtypetostringmap[9],prevlow)
-    data.insert(10,paramtypetostringmap[10],prevhigh)
+    # data.insert(8,paramtypetostringmap[8],vwap)
+    data.insert(8,paramtypetostringmap[8],prevlow)
+    data.insert(9,paramtypetostringmap[9],prevhigh)
+    data.insert(10,paramtypetostringmap[10],prevclose)
     data_training = data[data['Date']<'2020-11-30 09:30:00-05:00'].copy()
     data_test = data[data['Date']>='2020-11-30 09:30:00-05:00'].copy()
     # print("Training Data")
@@ -130,7 +137,7 @@ def GetPredictions(paramtype,ticker):
         X_train.append(temp)
         y_train.append(data_training[i, 1])
     Parameters=[]
-    for x in range(0,11):
+    for x in range(0,len(paramtypetostringmap)):
         Parameters.append(paramtypetostringmap[x])
     data_training=pd.DataFrame(data_training,columns=Parameters)
 
@@ -142,7 +149,7 @@ def GetPredictions(paramtype,ticker):
     # 75's results were good
     # regressor.add(LSTM(units = 60,activation = 'tanh',recurrent_activation='sigmoid', return_sequences=True ,input_shape = (X_train.shape[1], 7)))    
     # regressor.add(Dropout(0.2))
-    regressor.add(LSTM(units = 100,activation = 'sigmoid',recurrent_activation='tanh', input_shape = (X_train.shape[1], 11)))
+    regressor.add(LSTM(units = 100,activation = 'sigmoid',recurrent_activation='tanh', input_shape = (X_train.shape[1], len(paramtypetostringmap))))
     # regressor.add(Dropout(0.2))
     regressor.add(Dense(units = 1))
     regressor.summary()
@@ -150,7 +157,7 @@ def GetPredictions(paramtype,ticker):
     regressor.compile(optimizer='adam', loss = 'mean_squared_error')
     es = EarlyStopping(monitor='loss',patience=100,restore_best_weights=True)
     #55,100,80 were good 
-    regressor.fit(X_train, y_train, epochs=60, batch_size=30,callbacks=[es])
+    regressor.fit(X_train, y_train, epochs=70, batch_size=30,callbacks=[es])
     # regressor.fit(X_train, y_train, epochs=100, batch_size=30)
 
     past_60_days = data_training.tail(15)
