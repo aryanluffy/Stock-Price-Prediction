@@ -40,63 +40,65 @@ def GetPredictions(paramtype,ticker):
     paramtypetostringmap[3]='Low'
     paramtypetostringmap[4]='Close'
     paramtypetostringmap[5]='Volume'
-    paramtypetostringmap[6]='Weekday'
-    paramtypetostringmap[7]='DayOfMonth'
+    # paramtypetostringmap[6]='Weekday'
+    # paramtypetostringmap[7]='DayOfMonth'
     #how much history to see
     for j in range(0,14):
+        paramtypetostringmap[6+3*j]='Low'+str(j)
+        paramtypetostringmap[7+3*j]='High'+str(j)
         paramtypetostringmap[8+3*j]='Close'+str(j)
-        paramtypetostringmap[9+3*j]='High'+str(j)
-        paramtypetostringmap[10+3*j]='Low'+str(j)
+    paramtypetostringmap[48]='DayOfWeek'
+    paramtypetostringmap[49]='DayOfMonth'
     # paramtypetostringmap[6]='PrevLow'
     # paramtypetostringmap[7]='PrevHigh'
     # paramtypetostringmap[8]='PrevClose'
     # paramtypetostringmap[9]='RSI'
-    daylow={}
-    dayhigh={}
-    data = pd.read_csv(ticker+'.csv', date_parser = True)
+    # daylow={}
+    # dayhigh={}
+    data = pd.read_csv(ticker+'parameters.csv', date_parser = True)
     data.tail()
     # ohdiff=pd.Series([])
     wkday=pd.Series([])
     dayofmonth=pd.Series([])
     # vwap=pd.Series([])
-    prevlow=pd.Series([])
-    prevhigh=pd.Series([])
-    prevclose=pd.Series([])
-    low=[]
-    high=[]
-    close=[]
-    for j in range(0,14):
-        low.append(pd.Series([]))
-        close.append(pd.Series([]))
-        high.append(pd.Series([]))
+    # prevlow=pd.Series([])
+    # prevhigh=pd.Series([])
+    # prevclose=pd.Series([])
+    # low=[]
+    # high=[]
+    # close=[]
+    # for j in range(0,14):
+    #     low.append(pd.Series([]))
+    #     close.append(pd.Series([]))
+    #     high.append(pd.Series([]))
     # rsi=pd.Series([])
-    vol=0
-    weightedsum=0
-    currmin=0
-    currmax=0
-    currclose=0
+    # vol=0
+    # weightedsum=0
+    # currmin=0
+    # currmax=0
+    # currclose=0
     for ind in data.index:
         # ohdiff[ind]=data['High'][ind]-data['Open'][ind]
-        if data['Date'][ind][11:19]=='09:15:00':
-            prevhigh[ind]=currmax
-            prevlow[ind]=currmin
-            prevclose[ind]=currclose
-        else:
-            prevlow[ind]=prevlow[ind-1]
-            prevhigh[ind]=prevhigh[ind-1]
-            prevclose[ind]=prevclose[ind-1]
-        low[0][ind]=prevlow[ind]
-        high[0][ind]=prevhigh[ind]
-        close[0][ind]=prevclose[ind]
-        for i in range(1,14):
-            if ind-75>-1:
-                low[i][ind]=low[i-1][ind-75]
-                high[i][ind]=high[i-1][ind-75]
-                close[i][ind]=close[i-1][ind-75]
-            else:
-                low[i][ind]=0
-                high[i][ind]=0
-                close[i][ind]=0
+        # if data['Date'][ind][11:19]=='09:15:00':
+        #     prevhigh[ind]=currmax
+        #     prevlow[ind]=currmin
+        #     prevclose[ind]=currclose
+        # else:
+        #     prevlow[ind]=prevlow[ind-1]
+        #     prevhigh[ind]=prevhigh[ind-1]
+        #     prevclose[ind]=prevclose[ind-1]
+        # low[0][ind]=prevlow[ind]
+        # high[0][ind]=prevhigh[ind]
+        # close[0][ind]=prevclose[ind]
+        # for i in range(1,14):
+        #     if ind-75>-1:
+        #         low[i][ind]=low[i-1][ind-75]
+        #         high[i][ind]=high[i-1][ind-75]
+        #         close[i][ind]=close[i-1][ind-75]
+        #     else:
+        #         low[i][ind]=0
+        #         high[i][ind]=0
+        #         close[i][ind]=0
         # if len(prevclose)<13:
         #     rsi[ind]=0
         # else:
@@ -117,34 +119,34 @@ def GetPredictions(paramtype,ticker):
         #         rsi[ind]=0
         currdate=data['Date'][ind][0:10]
         currclose=data['Close'][ind]
-        if currdate in daylow:
-            daylow[currdate]=min(daylow[currdate],data['Low'][ind])
-            dayhigh[currdate]=max(dayhigh[currdate],data['High'][ind])
-            currmin=min(currmin,daylow[currdate])
-            currmax=max(currmax,dayhigh[currdate])
-        else:
-            daylow[currdate]=data['Low'][ind]
-            dayhigh[currdate]=data['High'][ind]
-            currmin=daylow[currdate]
-            currmax=dayhigh[currdate]
-        if data['Date'][ind][11:19]=='09:15:00':
-            vol=data['Volume'][ind]
-            weightedsum=data['Volume'][ind]*data['Close'][ind]
-        else:
-            vol+=data['Volume'][ind]
-            weightedsum+=data['Volume'][ind]*data['Close'][ind]
+        # if currdate in daylow:
+        #     daylow[currdate]=min(daylow[currdate],data['Low'][ind])
+        #     dayhigh[currdate]=max(dayhigh[currdate],data['High'][ind])
+        #     currmin=min(currmin,daylow[currdate])
+        #     currmax=max(currmax,dayhigh[currdate])
+        # else:
+        #     daylow[currdate]=data['Low'][ind]
+        #     dayhigh[currdate]=data['High'][ind]
+        #     currmin=daylow[currdate]
+        #     currmax=dayhigh[currdate]
+        # if data['Date'][ind][11:19]=='09:15:00':
+        #     vol=data['Volume'][ind]
+        #     weightedsum=data['Volume'][ind]*data['Close'][ind]
+        # else:
+        #     vol+=data['Volume'][ind]
+        #     weightedsum+=data['Volume'][ind]*data['Close'][ind]
         # vwap[ind]=weightedsum/vol
         datestring=data['Date'][ind][0:4]+' '+data['Date'][ind][5:7]+' '+data['Date'][ind][8:10]
         wkday[ind]=findDay(datestring)
         dayofmonth[ind]=(ord(data['Date'][ind][8])-ord('0'))*10+ord(data['Date'][ind][9])-ord('0')
         # print(str(ind)+' '+str(ohdiff[ind]))
     #Inserting The additional parameters
-    data.insert(6,paramtypetostringmap[6],wkday)
-    data.insert(7,paramtypetostringmap[7],dayofmonth)
-    for j in range(0,14):
-        data.insert(8+3*j,paramtypetostringmap[8+3*j],close[j])
-        data.insert(9+3*j,paramtypetostringmap[9+3*j],high[j])
-        data.insert(10+3*j,paramtypetostringmap[10+3*j],low[j])
+    data.insert(48,paramtypetostringmap[48],wkday)
+    data.insert(49,paramtypetostringmap[49],dayofmonth)
+    # for j in range(0,14):
+    #     data.insert(8+3*j,paramtypetostringmap[8+3*j],close[j])
+    #     data.insert(9+3*j,paramtypetostringmap[9+3*j],high[j])
+    #     data.insert(10+3*j,paramtypetostringmap[10+3*j],low[j])
     # data.insert(8,paramtypetostringmap[8],vwap)
     # data.insert(6,paramtypetostringmap[6],prevlow)
     # data.insert(7,paramtypetostringmap[7],prevhigh)
@@ -200,10 +202,10 @@ def GetPredictions(paramtype,ticker):
     regressor.add(Dense(units = 1))
     regressor.summary()
 
-    regressor.compile(optimizer='adam', loss = 'mean_squared_logarithmic_error')
+    regressor.compile(optimizer='adam', loss = 'mean_squared_error')
     es = EarlyStopping(monitor='loss',patience=100,restore_best_weights=True)
     #55,100,80 were good 
-    regressor.fit(X_train, y_train, epochs=150, batch_size=30,callbacks=[es])
+    regressor.fit(X_train, y_train, epochs=75, batch_size=30,callbacks=[es])
     # regressor.fit(X_train, y_train, epochs=100, batch_size=30)
 
     past_60_days = data_training.tail(6)
