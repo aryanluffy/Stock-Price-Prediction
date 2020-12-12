@@ -7,6 +7,7 @@ from tensorflow.keras import Sequential
 from tensorflow.keras.layers import Dense, LSTM, Dropout
 from tensorflow.keras.callbacks import EarlyStopping
 import calendar
+# import talib
 
 def findDay(date): 
     year, month, day = (int(i) for i in date.split(' '))     
@@ -41,11 +42,15 @@ def GetPredictions(paramtype,ticker):
     paramtypetostringmap[5]='Volume'
     paramtypetostringmap[6]='Weekday'
     paramtypetostringmap[7]='DayOfMonth'
-    # paramtypetostringmap[8]='VWAP'
-    paramtypetostringmap[8]='PrevLow'
-    paramtypetostringmap[9]='PrevHigh'
-    paramtypetostringmap[10]='PrevClose'
-    paramtypetostringmap[11]='RSI'
+    #how much history to see
+    for j in range(0,14):
+        paramtypetostringmap[8+3*j]='Close'+str(j)
+        paramtypetostringmap[9+3*j]='High'+str(j)
+        paramtypetostringmap[10+3*j]='Low'+str(j)
+    # paramtypetostringmap[6]='PrevLow'
+    # paramtypetostringmap[7]='PrevHigh'
+    # paramtypetostringmap[8]='PrevClose'
+    # paramtypetostringmap[9]='RSI'
     daylow={}
     dayhigh={}
     data = pd.read_csv(ticker+'.csv', date_parser = True)
@@ -53,11 +58,18 @@ def GetPredictions(paramtype,ticker):
     # ohdiff=pd.Series([])
     wkday=pd.Series([])
     dayofmonth=pd.Series([])
-    vwap=pd.Series([])
+    # vwap=pd.Series([])
     prevlow=pd.Series([])
     prevhigh=pd.Series([])
     prevclose=pd.Series([])
-    rsi=pd.Series([])
+    low=[]
+    high=[]
+    close=[]
+    for j in range(0,14):
+        low.append(pd.Series([]))
+        close.append(pd.Series([]))
+        high.append(pd.Series([]))
+    # rsi=pd.Series([])
     vol=0
     weightedsum=0
     currmin=0
@@ -73,24 +85,36 @@ def GetPredictions(paramtype,ticker):
             prevlow[ind]=prevlow[ind-1]
             prevhigh[ind]=prevhigh[ind-1]
             prevclose[ind]=prevclose[ind-1]
-        if len(prevclose)<13:
-            rsi[ind]=0
-        else:
-            up=0
-            down=0
-            for j in range(ind-11,ind+1):
-                if prevclose[j]-prevclose[j-1]>0:
-                    up+=prevclose[j]-prevclose[j-1]
-                else:
-                    down+=prevclose[j-1]-prevclose[j]
-            if data['Close'][ind]-prevclose[ind]>0:
-                up+=data['Close'][ind]-prevclose[ind]
+        low[0][ind]=prevlow[ind]
+        high[0][ind]=prevhigh[ind]
+        close[0][ind]=prevclose[ind]
+        for i in range(1,14):
+            if ind-75>-1:
+                low[i][ind]=low[i-1][ind-75]
+                high[i][ind]=high[i-1][ind-75]
+                close[i][ind]=close[i-1][ind-75]
             else:
-                down-=data['Close'][ind]-prevclose[ind]
-            if up+down>0:
-                rsi[ind]=up/(up+down)
-            else:
-                rsi[ind]=0
+                low[i][ind]=0
+                high[i][ind]=0
+                close[i][ind]=0
+        # if len(prevclose)<13:
+        #     rsi[ind]=0
+        # else:
+        #     up=0
+        #     down=0
+        #     for j in range(ind-11,ind+1):
+        #         if prevclose[j]-prevclose[j-1]>0:
+        #             up+=prevclose[j]-prevclose[j-1]
+        #         else:
+        #             down+=prevclose[j-1]-prevclose[j]
+        #     if data['Close'][ind]-prevclose[ind]>0:
+        #         up+=data['Close'][ind]-prevclose[ind]
+        #     else:
+        #         down-=data['Close'][ind]-prevclose[ind]
+        #     if up+down>0:
+        #         rsi[ind]=up/(up+down)
+        #     else:
+        #         rsi[ind]=0
         currdate=data['Date'][ind][0:10]
         currclose=data['Close'][ind]
         if currdate in daylow:
@@ -109,20 +133,23 @@ def GetPredictions(paramtype,ticker):
         else:
             vol+=data['Volume'][ind]
             weightedsum+=data['Volume'][ind]*data['Close'][ind]
-        vwap[ind]=weightedsum/vol
+        # vwap[ind]=weightedsum/vol
         datestring=data['Date'][ind][0:4]+' '+data['Date'][ind][5:7]+' '+data['Date'][ind][8:10]
-        # datestring[4]=' '
-        # datestring[7]=' '
         wkday[ind]=findDay(datestring)
         dayofmonth[ind]=(ord(data['Date'][ind][8])-ord('0'))*10+ord(data['Date'][ind][9])-ord('0')
         # print(str(ind)+' '+str(ohdiff[ind]))
+    #Inserting The additional parameters
     data.insert(6,paramtypetostringmap[6],wkday)
     data.insert(7,paramtypetostringmap[7],dayofmonth)
+    for j in range(0,14):
+        data.insert(8+3*j,paramtypetostringmap[8+3*j],close[j])
+        data.insert(9+3*j,paramtypetostringmap[9+3*j],high[j])
+        data.insert(10+3*j,paramtypetostringmap[10+3*j],low[j])
     # data.insert(8,paramtypetostringmap[8],vwap)
-    data.insert(8,paramtypetostringmap[8],prevlow)
-    data.insert(9,paramtypetostringmap[9],prevhigh)
-    data.insert(10,paramtypetostringmap[10],prevclose)
-    data.insert(11,paramtypetostringmap[11],rsi)
+    # data.insert(6,paramtypetostringmap[6],prevlow)
+    # data.insert(7,paramtypetostringmap[7],prevhigh)
+    # data.insert(8,paramtypetostringmap[8],prevclose)
+    # data.insert(9,paramtypetostringmap[9],rsi)
     data_training = data[data['Date']<'2020-11-30 09:30:00-05:00'].copy()
     data_test = data[data['Date']>='2020-11-30 09:30:00-05:00'].copy()
     # print("Training Data")
@@ -148,13 +175,11 @@ def GetPredictions(paramtype,ticker):
     y_train = []
     # print("THE SHAPE OF TRAINING IS::")
     # print(data_training.shape)
-    for i in range(15, data_training.shape[0]):
+    for i in range(6, data_training.shape[0]):
         # print("ESORAGOTO")
         # for j in range(0,5):
         #     print(str(data_training[i][j]/scaler.scale_[j]))
-        temp=data_training[i-15:i-1]
-        # if temp[10][0]<0.2:
-        #     continue
+        temp=data_training[i-6:i-1]
         X_train.append(temp)
         y_train.append(data_training[i, 1])
     Parameters=[]
@@ -163,25 +188,25 @@ def GetPredictions(paramtype,ticker):
     data_training=pd.DataFrame(data_training,columns=Parameters)
 
     X_train, y_train = np.array(X_train), np.array(y_train)
-    X_train.shape
-
+    print(X_train.shape[1])
+    # print(X_train.shape())
     regressor = Sequential()
     # simple early stopping
     # 75's results were good
     # regressor.add(LSTM(units = 60,activation = 'tanh',recurrent_activation='sigmoid', return_sequences=True ,input_shape = (X_train.shape[1], 7)))    
     # regressor.add(Dropout(0.2))
-    regressor.add(LSTM(units = 100,activation = 'sigmoid',recurrent_activation='tanh', input_shape = (X_train.shape[1], len(paramtypetostringmap))))
+    regressor.add(LSTM(units = 100,activation = 'tanh',recurrent_activation='sigmoid', input_shape = (X_train.shape[1],len(paramtypetostringmap))))
     # regressor.add(Dropout(0.2))
     regressor.add(Dense(units = 1))
     regressor.summary()
 
-    regressor.compile(optimizer='adam', loss = 'mean_squared_error')
+    regressor.compile(optimizer='adam', loss = 'mean_squared_logarithmic_error')
     es = EarlyStopping(monitor='loss',patience=100,restore_best_weights=True)
     #55,100,80 were good 
-    regressor.fit(X_train, y_train, epochs=70, batch_size=30,callbacks=[es])
+    regressor.fit(X_train, y_train, epochs=150, batch_size=30,callbacks=[es])
     # regressor.fit(X_train, y_train, epochs=100, batch_size=30)
 
-    past_60_days = data_training.tail(15)
+    past_60_days = data_training.tail(6)
     # print(len(data_test))
     for ind in data_test.index:
         data_test['Date'][ind]=dateTimeToTime(data_test['Date'][ind])
@@ -195,10 +220,8 @@ def GetPredictions(paramtype,ticker):
 
     X_test = []
     y_test = []
-    for i in range(15, inputs.shape[0]):
-        temp=inputs[i-15:i-1]
-        # if temp[10][0]<0.2:
-        #     continue
+    for i in range(6, inputs.shape[0]):
+        temp=inputs[i-6:i-1]
         X_test.append(temp)
         y_test.append(inputs[i,1])
         # print("FUCKKKKKK "+str(inputs[i,5]))
@@ -235,6 +258,8 @@ def GetPredictions(paramtype,ticker):
         print("Average Error in Low is "+str(100*x/cnt))
     elif paramtype==3:
         print("Average Error in Close is "+str(100*x/cnt))
+    # y_pred=[2,2,2]
+    # y_test=[2,2,2]
     return y_pred,y_test
 
 def GetInputs(paramtype,ticker):
@@ -310,7 +335,6 @@ def main():
         variance=(y_test[i]-avg)*(y_test[i]-avg)+variance
     print("r^2 is")
     print(1-mse/variance)
-
     # print("The returns are "+str(returns))
     return
 
