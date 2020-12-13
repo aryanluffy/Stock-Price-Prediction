@@ -3,6 +3,8 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import yfinance as yf
 from sklearn.preprocessing import MinMaxScaler
+import tensorflow as tf
+import keras.losses
 from tensorflow.keras import Sequential
 from tensorflow.keras.layers import Dense, LSTM, Dropout
 from tensorflow.keras.callbacks import EarlyStopping
@@ -24,18 +26,20 @@ def getIntradayData(ticker):
     file.close()
     return 
 
-def dateTimeToTime(datetime):
-    x=0.0
-    #11,12,14,15
-    x=((ord(datetime[11])-ord('0'))*10+ord(datetime[12])-ord('0'))*60+(ord(datetime[14])-ord('0'))*10+ord(datetime[15])-ord('0')
-    return x
+def sign_penalty(y_true, y_pred):
+    penalty = 1
+    loss = tf.where(tf.less(y_true * y_pred, 0), \
+                     penalty * tf.square(y_true - y_pred), \
+                     tf.square(y_true - y_pred))
+
+    return tf.reduce_mean(loss, axis=-1)
 
 
 #paramtype corresponds to open,low,high
 def GetPredictions(paramtype,ticker):
     paramtypetostringmap = {}
     PointSetSize=12
-    paramtypetostringmap[0]='Date'
+    paramtypetostringmap[0]='TimeOfday'
     paramtypetostringmap[1]='Open'
     paramtypetostringmap[2]='High'
     paramtypetostringmap[3]='Low'
@@ -48,26 +52,12 @@ def GetPredictions(paramtype,ticker):
         paramtypetostringmap[8+3*j]='Close'+str(j)
     paramtypetostringmap[48]='DayOfWeek'
     paramtypetostringmap[49]='DayOfMonth'
+    paramtypetostringmap[50]='ConsecDiff'
     data = pd.read_csv(ticker+'parameters.csv', date_parser = True)
     data.tail()
-    # ohdiff=pd.Series([])
-    wkday=pd.Series([])
-    dayofmonth=pd.Series([])
-    for ind in data.index:
-        datestring=data['Date'][ind][0:4]+' '+data['Date'][ind][5:7]+' '+data['Date'][ind][8:10]
-        wkday[ind]=findDay(datestring)
-        dayofmonth[ind]=(ord(data['Date'][ind][8])-ord('0'))*10+ord(data['Date'][ind][9])-ord('0')
-        # print(str(ind)+' '+str(ohdiff[ind]))
-    #Inserting The additional parameters
-    data.insert(48,paramtypetostringmap[48],wkday)
-    data.insert(49,paramtypetostringmap[49],dayofmonth)
     data_training = data[data['Date']<'2020-11-30 09:30:00-05:00'].copy()
     data_test = data[data['Date']>='2020-11-30 09:30:00-05:00'].copy()
-    data_training_dates=pd.Series([])
-    for ind in data_training.index:
-        data_training_dates[ind]=data_training['Date'][ind]
-        data_training['Date'][ind]=dateTimeToTime(data_training['Date'][ind])
-    # data_training = data_training.drop(['Date'], axis = 1)
+    data_training = data_training.drop(['Date'], axis = 1)
     minval=1e9
     #Get min-max for paramtype
     for ind in data_training.index:
@@ -79,9 +69,8 @@ def GetPredictions(paramtype,ticker):
     X_train = []
     y_train = []
     for i in range(PointSetSize, data_training.shape[0]):
-        temp=data_training[i-PointSetSize:i-1]
-        X_train.append(temp)
-        y_train.append(data_training[i, 1])
+        X_train.append(data_training[i-PointSetSize:i-1])
+        y_train.append(data_training[i,1])
     Parameters=[]
     for x in range(0,len(paramtypetostringmap)):
         Parameters.append(paramtypetostringmap[x])
@@ -95,24 +84,22 @@ def GetPredictions(paramtype,ticker):
     # 75's results were good
     # regressor.add(LSTM(units = 60,activation = 'tanh',recurrent_activation='sigmoid', return_sequences=True ,input_shape = (X_train.shape[1], 7)))    
     # regressor.add(Dropout(0.2))
-    regressor.add(LSTM(units = 128,recurrent_dropout=0.2,activation = 'tanh',recurrent_activation='sigmoid', input_shape = (X_train.shape[1],len(paramtypetostringmap))))
+    regressor.add(LSTM(units = 80,activation = 'tanh',recurrent_activation='sigmoid', input_shape = (X_train.shape[1],len(paramtypetostringmap))))
     # regressor.add(Dropout(0.2))
     regressor.add(Dense(units = 1))
     regressor.summary()
 
     regressor.compile(optimizer='adam', loss = 'mean_squared_error')
     es = EarlyStopping(monitor='loss',patience=100,restore_best_weights=True)
-    #55,100,80 were good 
-    regressor.fit(X_train, y_train, epochs=50, batch_size=30,callbacks=[es])
+    #30 were good 
+    regressor.fit(X_train, y_train, epochs=18, batch_size=30,callbacks=[es])
     # regressor.fit(X_train, y_train, epochs=100, batch_size=30)
 
     past_60_days = data_training.tail(PointSetSize)
     # print(len(data_test))
-    for ind in data_test.index:
-        data_test['Date'][ind]=dateTimeToTime(data_test['Date'][ind])
     df = past_60_days.append(data_test, ignore_index = True)
     
-    # df = df.drop(['Date'], axis = 1)
+    df = df.drop(['Date'], axis = 1)
     df.head()
     # print(len(df))
     inputs = scaler.transform(df)
@@ -121,9 +108,8 @@ def GetPredictions(paramtype,ticker):
     X_test = []
     y_test = []
     for i in range(PointSetSize, inputs.shape[0]):
-        temp=inputs[i-PointSetSize:i-1]
-        X_test.append(temp)
-        y_test.append(inputs[i,1])
+        X_test.append(inputs[i-PointSetSize:i-1])
+        y_test.append(inputs[i, 1])
 
     X_test, y_test = np.array(X_test), np.array(y_test)
     print("kami sama arigato")
@@ -218,6 +204,6 @@ def main():
     print("r^2 is")
     print(1-mse/variance)
     return
-
+keras.losses.sign_penalty = sign_penalty
 main()
 

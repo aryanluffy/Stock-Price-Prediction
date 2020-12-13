@@ -2,6 +2,18 @@
 #include <fstream>
 using namespace std;
 
+int dayofweek(int d, int m, int y)  
+{  
+    static int t[] = { 0, 3, 2, 5, 0, 3, 
+                       5, 1, 4, 6, 2, 4 };  
+    y -= m < 3;  
+    return ( y + y / 4 - y / 100 +  
+             y / 400 + t[m - 1] + d) % 7;  
+}
+int dateTimeToMinuteTime(string date){
+    return (10*(date[11]-'0')+(date[12]-'0'))*60+(10*(date[14]-'0')+(date[15]-'0'));
+}
+
 int main(){
     string csvfile;
     cin>>csvfile;
@@ -65,27 +77,35 @@ int main(){
                 if(i>74)
                 prev[k][j][i]=prev[k][j-1][i-75];
     }
-    out<<"Date,Open,High,Low,Close,Volume,";
+    out<<"Date,TimeOfday,Open,High,Low,Close,Volume,";
     for(int i=0;i<14;i++){
         for(int j=0;j<3;j++){
             if(j==0)out<<"Low"+to_string(i)<<",";
             else if(j==1)out<<"High"+to_string(i)<<",";
-            else{
-                if(i==13)out<<"Close"+to_string(i)<<"\n";
-                else out<<"Close"+to_string(i)<<",";
-            }
+            else out<<"Close"+to_string(i)<<",";
         }
+    }
+    out<<"DayOfWeek,DayOfMonth,ConsecDiff\n";
+    float diff[data[0].size()];
+    memset(diff,0,sizeof diff);
+    for(int i=1;i<data[0].size();i++){
+        diff[i]=data[0][i]-data[0][i-1];
     }
     for(int i=0;i<dates.size();i++){
         out<<dates[i]<<",";
+        out<<dateTimeToMinuteTime(dates[i])<<",";
         for(int j=0;j<5;j++)    
             out<<data[j][i]<<",";
         for(int k=0;k<14;k++)
             for(int l=0;l<3;l++)
-                if(l==2 && k==13)
-                out<<prev[l][k][i]<<"\n";
-                else out<<prev[l][k][i]<<",";
-
+                out<<prev[l][k][i]<<",";
+        int d,m,y;
+        d=stoi(dates[i].substr(8,2));
+        m=stoi(dates[i].substr(5,2));
+        y=stoi(dates[i].substr(0,4));
+        int dow=dayofweek(d,m,y);
+        out<<dow<<","<<d<<",";
+        out<<diff[i]<<"\n";
     }
     return 0;
 }
