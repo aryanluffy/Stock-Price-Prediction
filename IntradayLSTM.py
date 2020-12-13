@@ -79,10 +79,6 @@ def GetPredictions(paramtype,ticker):
     print(X_train.shape[1])
     # print(X_train.shape())
     regressor = Sequential()
-    # simple early stopping
-    # 75's results were good
-    # regressor.add(LSTM(units = 60,activation = 'tanh',recurrent_activation='sigmoid', return_sequences=True ,input_shape = (X_train.shape[1], 7)))    
-    # regressor.add(Dropout(0.2))
     regressor.add(LSTM(units = 51,activation = 'tanh',recurrent_activation='sigmoid', input_shape = (X_train.shape[1],len(paramtypetostringmap))))
     # regressor.add(Dropout(0.2))
     regressor.add(Dense(units = 1))
