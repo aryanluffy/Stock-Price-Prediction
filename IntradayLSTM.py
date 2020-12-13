@@ -38,7 +38,7 @@ def sign_penalty(y_true, y_pred):
 #paramtype corresponds to open,low,high
 def GetPredictions(paramtype,ticker):
     paramtypetostringmap = {}
-    PointSetSize=12
+    PointSetSize=30
     paramtypetostringmap[0]='TimeOfday'
     paramtypetostringmap[1]='Open'
     paramtypetostringmap[2]='High'
@@ -52,7 +52,6 @@ def GetPredictions(paramtype,ticker):
         paramtypetostringmap[8+3*j]='Close'+str(j)
     paramtypetostringmap[48]='DayOfWeek'
     paramtypetostringmap[49]='DayOfMonth'
-    paramtypetostringmap[50]='ConsecDiff'
     data = pd.read_csv(ticker+'parameters.csv', date_parser = True)
     data.tail()
     data_training = data[data['Date']<'2020-11-30 09:30:00-05:00'].copy()
@@ -84,15 +83,15 @@ def GetPredictions(paramtype,ticker):
     # 75's results were good
     # regressor.add(LSTM(units = 60,activation = 'tanh',recurrent_activation='sigmoid', return_sequences=True ,input_shape = (X_train.shape[1], 7)))    
     # regressor.add(Dropout(0.2))
-    regressor.add(LSTM(units = 80,activation = 'tanh',recurrent_activation='sigmoid', input_shape = (X_train.shape[1],len(paramtypetostringmap))))
+    regressor.add(LSTM(units = 51,activation = 'tanh',recurrent_activation='sigmoid', input_shape = (X_train.shape[1],len(paramtypetostringmap))))
     # regressor.add(Dropout(0.2))
     regressor.add(Dense(units = 1))
     regressor.summary()
 
     regressor.compile(optimizer='adam', loss = 'mean_squared_error')
     es = EarlyStopping(monitor='loss',patience=100,restore_best_weights=True)
-    #30 were good 
-    regressor.fit(X_train, y_train, epochs=18, batch_size=30,callbacks=[es])
+    #20 were good 
+    regressor.fit(X_train, y_train, epochs=100, batch_size=30,callbacks=[es])
     # regressor.fit(X_train, y_train, epochs=100, batch_size=30)
 
     past_60_days = data_training.tail(PointSetSize)
@@ -120,11 +119,15 @@ def GetPredictions(paramtype,ticker):
 
     y_pred = y_pred*scale+minval
     y_test = y_test*scale+minval
-
+    d_pred=[]
+    d_test=[]
+    for i in range(60,len(y_pred)):
+        d_pred.append(y_pred[i]-y_test[i-1])
+        d_test.append(y_test[i]-y_test[i-1])
     # Visualising the results
     plt.figure(figsize=(14,5))
-    plt.plot(y_test, color = 'red', label = 'Real Stock Price')
-    plt.plot(y_pred, color = 'blue', label = 'Predicted Stock Price')
+    plt.plot(d_test, color = 'red', label = 'Real Stock Price')
+    plt.plot(d_pred, color = 'blue', label = 'Predicted Stock Price')
     plt.title(ticker+' Prediction')
     plt.xlabel('Time')
     plt.ylabel(ticker+' Real')
@@ -148,36 +151,6 @@ def GetPredictions(paramtype,ticker):
     # y_test=[2,2,2]
     return y_pred,y_test
 
-def GetInputs(paramtype,ticker):
-    data = pd.read_csv(ticker+'.csv', date_parser = True)
-    data.tail()
-
-    data_training = data[data['Date']<'2020-12-04 09:30:00-05:00'].copy()
-    data_test = data[data['Date']>='2020-12-04 09:30:00-05:00'].copy()
-
-    data_training = data_training.drop(['Date'], axis = 1)
-    scaler = MinMaxScaler()
-    data_training = scaler.fit_transform(data_training)
-    data_training=pd.DataFrame(data_training,columns=['Open','High','Low','Close','Volume'])
-    past_60_days = data_training.tail(20)
-    df = past_60_days.append(data_test, ignore_index = True)
-    df = df.drop(['Date'], axis = 1)
-    df.head()
-    inputs = scaler.transform(df)
-    inputs
-
-    y_test = []
-    for i in range(20, inputs.shape[0]):
-        y_test.append(inputs[i, paramtype])
-
-    y_test = np.array(y_test)
-
-    scaler.scale_
-    scale = 1/scaler.scale_[paramtype]
-
-    y_test = y_test*scale
-
-    return y_test
 
 def main():
     ticker=input("Give Stock name ")
