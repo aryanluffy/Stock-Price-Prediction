@@ -21,7 +21,7 @@ from tensorflow.keras.layers import *
 # import talib
 
 batch_size = 32
-seq_len = 36
+seq_len = 128
 d_k = 32
 d_v = 32
 n_heads = 3
@@ -279,7 +279,7 @@ def GetPredictions(paramtype,ticker):
 
     history = model.fit(X_train, y_train, 
                     batch_size=batch_size, 
-                    epochs=100, 
+                    epochs=30, 
                     callbacks=[callback],
                     validation_split=0.1)  
 
