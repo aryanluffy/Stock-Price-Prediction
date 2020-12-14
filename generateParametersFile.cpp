@@ -21,7 +21,7 @@ int main(){
     ofstream out(csvfile+"parameters.csv");
     string x,y;
     in>>x;
-    vector <float> data[5];
+    vector <double> data[5];
     vector <string> dates;
     while(in>>x){
         in>>y;
@@ -29,7 +29,7 @@ int main(){
         vector <float> temp;
         for(int i=15;i<y.size();i++){
             if(y[i]==','){
-                temp.push_back(stof(curr));
+                temp.push_back(stod(curr));
                 curr="";
             }
             else{
@@ -40,8 +40,50 @@ int main(){
         for(int i=0;i<5;i++)data[i].push_back(temp[i]);
         dates.push_back(x+" "+y.substr(0,14));
     }
-    vector <float> low(data[0].size(),0),high(data[0].size(),0),close(data[0].size(),0);
-    float minval=0,maxval=0,closeval=0;
+    vector <double> low(data[0].size(),0),high(data[0].size(),0),close(data[0].size(),0),rsi(data[0].size(),0);
+    vector <double> ema26(data[0].size(),0),ema12(data[0].size(),0),cci(data[0].size(),0);
+    for(int i=0;i<12;i++)ema12[11]+=data[3][i];
+    for(int i=0;i<26;i++)ema26[25]+=data[3][i];
+    ema12[11]/=12;
+    ema26[25]/26;
+    for(int i=12;i<data[0].size();i++)
+        ema12[i]=data[3][i]*(2.0/13)+(11.0/13)*ema12[i-1];
+    for(int i=26;i<data[0].size();i++)
+        ema26[i]=data[3][i]*(2.0/26)+(24.0/26)*ema26[i-1];
+    vector <double> diff(data[0].size(),0);
+    for(int  i=0;i<data[0].size();i++)diff[i]=ema26[i]-ema12[i];
+    vector <double> macd(data[0].size(),0);
+    for(int i=0;i<9;i++)macd[8]+=diff[i];
+    macd[8]/=9;
+    for(int i=9;i<data[0].size();i++)macd[i]=diff[i]*(2.0/10)+(0.8)*macd[i-1];
+    double minval=0,maxval=0,closeval=0;
+    for(int i=13;i<data[0].size();i++){
+        float gains=0;
+        float losses=0;
+        for(int j=i-12;j<=i;j++){
+            gains+=max(0.0,data[3][j]-data[3][j-1]);
+            losses+=max(0.0,data[3][j-1]-data[3][j]);
+        }
+        if(gains+losses!=0.0)
+        rsi[i]=gains/(gains+losses);
+    }
+    vector <double> matypical20(data[0].size());
+    for(int i=0;i<20;i++)matypical20[19]+=(data[1][i]+data[2][i]+data[3][i])/3;
+    for(int i=20;i<data[0].size();i++){
+        matypical20[i]=matypical20[i-1]+(data[1][i]+data[2][i]+data[3][i])/3-(data[1][i-20]+data[2][i-20]+data[3][i-20])/3;
+    }
+    for(int i=0;i<matypical20.size();i++)matypical20[i]/=20;
+    for(int i=20;i<cci.size();i++){
+        double sum=0;
+        for(int j=i-19;j<=i;j++){
+            sum+=abs((data[1][j]+data[2][j]+data[3][j])/3-matypical20[i]);
+        }
+        sum/=20;
+        if(sum)
+        cci[i]=((data[1][i]+data[2][i]+data[3][i])/3-matypical20[i])/(sum);
+        else 
+        cci[i]=1000000000;
+    }
     for(int i=0;i<data[0].size();i++){
         // cout<<dates[i].substr(11)<<"\n";
         if(dates[i].substr(11)=="09:15:00+05:30"){
@@ -64,41 +106,36 @@ int main(){
             closeval=data[3][i];
         }
     }
-    int prev[3][14][data[0].size()];
+    int prev[3][1][data[0].size()];
     memset(prev,0,sizeof prev);
     for(int i=0;i<data[0].size();i++){
         prev[0][0][i]=low[i];
         prev[1][0][i]=high[i];
         prev[2][0][i]=close[i];
     }
-    for(int i=0;i<data[0].size();i++){
-        for(int j=1;j<14;j++)
-            for(int k=0;k<3;k++)
-                if(i>74)
-                prev[k][j][i]=prev[k][j-1][i-75];
-    }
     out<<"Date,TimeOfday,Open,High,Low,Close,Volume,";
-    for(int i=0;i<14;i++){
-        for(int j=0;j<3;j++){
-            if(j==0)out<<"Low"+to_string(i)<<",";
-            else if(j==1)out<<"High"+to_string(i)<<",";
-            else out<<"Close"+to_string(i)<<",";
-        }
-    }
-    out<<"DayOfWeek,DayOfMonth\n";
+    // for(int i=0;i<1;i++){
+    //     for(int j=0;j<3;j++){
+    //         if(j==0)out<<"Low"+to_string(i)<<",";
+    //         else if(j==1)out<<"High"+to_string(i)<<",";
+    //         else out<<"Close"+to_string(i)<<",";
+    //     }
+    // }
+    out<<"RSI,MACD,CCI,DayOfWeek,DayOfMonth\n";
     for(int i=0;i<dates.size();i++){
         out<<dates[i]<<",";
         out<<dateTimeToMinuteTime(dates[i])<<",";
         for(int j=0;j<5;j++)    
             out<<data[j][i]<<",";
-        for(int k=0;k<14;k++)
-            for(int l=0;l<3;l++)
-                out<<prev[l][k][i]<<",";
+        // for(int k=0;k<1;k++)
+        //     for(int l=0;l<3;l++)
+        //         out<<prev[l][k][i]<<",";
         int d,m,y;
         d=stoi(dates[i].substr(8,2));
         m=stoi(dates[i].substr(5,2));
         y=stoi(dates[i].substr(0,4));
         int dow=dayofweek(d,m,y);
+        out<<rsi[i]<<","<<macd[i]<<","<<cci[i]<<",";
         out<<dow<<","<<d<<"\n";
     }
     return 0;

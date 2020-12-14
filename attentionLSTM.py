@@ -45,7 +45,7 @@ def sign_penalty(y_true, y_pred):
 #paramtype corresponds to open,low,high
 def GetPredictions(paramtype,ticker):
     paramtypetostringmap = {}
-    PointSetSize=30
+    PointSetSize=12
     paramtypetostringmap[0]='TimeOfday'
     paramtypetostringmap[1]='Open'
     paramtypetostringmap[2]='High'
@@ -53,12 +53,15 @@ def GetPredictions(paramtype,ticker):
     paramtypetostringmap[4]='Close'
     paramtypetostringmap[5]='Volume'
     #how much history to see
-    for j in range(0,14):
-        paramtypetostringmap[6+3*j]='Low'+str(j)
-        paramtypetostringmap[7+3*j]='High'+str(j)
-        paramtypetostringmap[8+3*j]='Close'+str(j)
-    paramtypetostringmap[48]='DayOfWeek'
-    paramtypetostringmap[49]='DayOfMonth'
+    # for j in range(0,1):
+    #     paramtypetostringmap[6+3*j]='Low'+str(j)
+    #     paramtypetostringmap[7+3*j]='High'+str(j)
+    #     paramtypetostringmap[8+3*j]='Close'+str(j)
+    paramtypetostringmap[6]='RSI'
+    paramtypetostringmap[7]='MACD'
+    paramtypetostringmap[8]='CCI'
+    paramtypetostringmap[9]='DayOfWeek'
+    paramtypetostringmap[10]='DayOfMonth'
     data = pd.read_csv(ticker+'parameters.csv', date_parser = True)
     data.tail()
     data_training = data[data['Date']<'2020-11-30 09:30:00-05:00'].copy()
@@ -89,10 +92,10 @@ def GetPredictions(paramtype,ticker):
     # regressor.add(LSTM(units = 51,activation = 'tanh',recurrent_activation='sigmoid', input_shape = (X_train.shape[1],len(paramtypetostringmap))))
     # regressor.add(AttentionLayer(name='attention_layer'))
     # # regressor.add(Dropout(0.2))
-    # regressor.add(Dense(units = 1))
+    # regressor.add(Dense(units = 1))A
 
     regressor = Sequential([
-        LSTM(30, input_shape=(X_train.shape[1], len(paramtypetostringmap)), return_sequences=True),
+        LSTM(60, input_shape=(X_train.shape[1], len(paramtypetostringmap)), return_sequences=True),
         Attention(name='attention_weight'),
         Dense(1, activation='linear')
     ])
@@ -102,8 +105,8 @@ def GetPredictions(paramtype,ticker):
 
     regressor.compile(optimizer='adam', loss = 'mean_squared_error')
     es = EarlyStopping(monitor='loss',patience=100,restore_best_weights=True)
-    #20 were good 
-    regressor.fit(X_train, y_train, epochs=40, batch_size=30,callbacks=[es])
+    #30 were good 
+    regressor.fit(X_train, y_train,validation_split=0.2,epochs=100, batch_size=30,callbacks=[es])
     # regressor.fit(X_train, y_train, epochs=100, batch_size=30)
 
     past_60_days = data_training.tail(PointSetSize)

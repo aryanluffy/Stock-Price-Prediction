@@ -38,7 +38,7 @@ def sign_penalty(y_true, y_pred):
 #paramtype corresponds to open,low,high
 def GetPredictions(paramtype,ticker):
     paramtypetostringmap = {}
-    PointSetSize=30
+    PointSetSize=12
     paramtypetostringmap[0]='TimeOfday'
     paramtypetostringmap[1]='Open'
     paramtypetostringmap[2]='High'
@@ -46,12 +46,14 @@ def GetPredictions(paramtype,ticker):
     paramtypetostringmap[4]='Close'
     paramtypetostringmap[5]='Volume'
     #how much history to see
-    for j in range(0,14):
+    for j in range(0,1):
         paramtypetostringmap[6+3*j]='Low'+str(j)
         paramtypetostringmap[7+3*j]='High'+str(j)
         paramtypetostringmap[8+3*j]='Close'+str(j)
-    paramtypetostringmap[48]='DayOfWeek'
-    paramtypetostringmap[49]='DayOfMonth'
+    paramtypetostringmap[9]='RSI'
+    paramtypetostringmap[10]='MACD'
+    paramtypetostringmap[11]='DayOfWeek'
+    paramtypetostringmap[12]='DayOfMonth'
     data = pd.read_csv(ticker+'parameters.csv', date_parser = True)
     data.tail()
     data_training = data[data['Date']<'2020-11-30 09:30:00-05:00'].copy()
@@ -79,7 +81,7 @@ def GetPredictions(paramtype,ticker):
     print(X_train.shape[1])
     # print(X_train.shape())
     regressor = Sequential()
-    regressor.add(LSTM(units = 51,activation = 'tanh',recurrent_activation='sigmoid', input_shape = (X_train.shape[1],len(paramtypetostringmap))))
+    regressor.add(LSTM(units = 60,activation = 'tanh',recurrent_activation='sigmoid', input_shape = (X_train.shape[1],len(paramtypetostringmap))))
     # regressor.add(Dropout(0.2))
     regressor.add(Dense(units = 1))
     regressor.summary()
@@ -87,7 +89,7 @@ def GetPredictions(paramtype,ticker):
     regressor.compile(optimizer='adam', loss = 'mean_squared_error')
     es = EarlyStopping(monitor='loss',patience=100,restore_best_weights=True)
     #20 were good 
-    regressor.fit(X_train, y_train, epochs=100, batch_size=30,callbacks=[es])
+    regressor.fit(X_train, y_train, epochs=10, batch_size=30,callbacks=[es])
     # regressor.fit(X_train, y_train, epochs=100, batch_size=30)
 
     past_60_days = data_training.tail(PointSetSize)
@@ -117,7 +119,7 @@ def GetPredictions(paramtype,ticker):
     y_test = y_test*scale+minval
     d_pred=[]
     d_test=[]
-    for i in range(60,len(y_pred)):
+    for i in range(40,len(y_pred)):
         d_pred.append(y_pred[i]-y_test[i-1])
         d_test.append(y_test[i]-y_test[i-1])
     # Visualising the results
