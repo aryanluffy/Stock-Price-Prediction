@@ -184,9 +184,9 @@ def create_model():
   x = attn_layer2((x, x, x))
   x = attn_layer3((x, x, x))
   x = GlobalAveragePooling1D(data_format='channels_first')(x)
-  x = Dropout(0.1)(x)
+#   x = Dropout(0.1)(x)
   x = Dense(64, activation='relu')(x)
-  x = Dropout(0.1)(x)
+#   x = Dropout(0.1)(x)
   out = Dense(1, activation='linear')(x)
 
   model = Model(inputs=in_seq, outputs=out)
