@@ -60,8 +60,10 @@ def GetPredictions(paramtype,ticker):
     paramtypetostringmap[6]='RSI'
     paramtypetostringmap[7]='MACD'
     paramtypetostringmap[8]='CCI'
-    paramtypetostringmap[9]='DayOfWeek'
-    paramtypetostringmap[10]='DayOfMonth'
+    paramtypetostringmap[9]='BollingerBandL'
+    paramtypetostringmap[10]='BollingerBandU'
+    paramtypetostringmap[11]='DayOfWeek'
+    paramtypetostringmap[12]='DayOfMonth'
     data = pd.read_csv(ticker+'parameters.csv', date_parser = True)
     data.tail()
     data_training = data[data['Date']<'2020-11-30 09:30:00-05:00'].copy()
@@ -87,28 +89,17 @@ def GetPredictions(paramtype,ticker):
 
     X_train, y_train = np.array(X_train), np.array(y_train)
     print(X_train.shape[1])
-    # print(X_train.shape())
-    # regressor = Sequential()
-    # regressor.add(LSTM(units = 51,activation = 'tanh',recurrent_activation='sigmoid', input_shape = (X_train.shape[1],len(paramtypetostringmap))))
-    # regressor.add(AttentionLayer(name='attention_layer'))
-    # # regressor.add(Dropout(0.2))
-    # regressor.add(Dense(units = 1))A
-
     regressor = Sequential([
-        LSTM(60, input_shape=(X_train.shape[1], len(paramtypetostringmap)), return_sequences=True),
+        LSTM(128, input_shape=(X_train.shape[1], len(paramtypetostringmap)), return_sequences=True),
         Attention(name='attention_weight'),
         Dense(1, activation='linear')
     ])
-
-
     regressor.summary()
 
     regressor.compile(optimizer='adam', loss = 'mean_squared_error')
-    es = EarlyStopping(monitor='loss',patience=100,restore_best_weights=True)
+    es = EarlyStopping(monitor='val_loss',patience=100,restore_best_weights=True)
     #30 were good 
-    regressor.fit(X_train, y_train,validation_split=0.2,epochs=100, batch_size=30,callbacks=[es])
-    # regressor.fit(X_train, y_train, epochs=100, batch_size=30)
-
+    regressor.fit(X_train, y_train,validation_split=0.1,epochs=100, batch_size=30,callbacks=[es])
     past_60_days = data_training.tail(PointSetSize)
     # print(len(data_test))
     df = past_60_days.append(data_test, ignore_index = True)

@@ -41,6 +41,10 @@ int main(){
         dates.push_back(x+" "+y.substr(0,14));
     }
     vector <double> low(data[0].size(),0),high(data[0].size(),0),close(data[0].size(),0),rsi(data[0].size(),0);
+    vector <double> bollingerBand[2];
+    //0 is lower band and 1 is upper band
+    bollingerBand[0].assign(low.size(),0);
+    bollingerBand[1].assign(low.size(),0);
     vector <double> ema26(data[0].size(),0),ema12(data[0].size(),0),cci(data[0].size(),0);
     for(int i=0;i<12;i++)ema12[11]+=data[3][i];
     for(int i=0;i<26;i++)ema26[25]+=data[3][i];
@@ -75,14 +79,19 @@ int main(){
     for(int i=0;i<matypical20.size();i++)matypical20[i]/=20;
     for(int i=20;i<cci.size();i++){
         double sum=0;
+        double sum2=0;
         for(int j=i-19;j<=i;j++){
             sum+=abs((data[1][j]+data[2][j]+data[3][j])/3-matypical20[i]);
+            sum2+=abs((data[1][j]+data[2][j]+data[3][j])/3-matypical20[i])*abs((data[1][j]+data[2][j]+data[3][j])/3-matypical20[i]);
         }
         sum/=20;
+        sum2/=20;
         if(sum)
         cci[i]=((data[1][i]+data[2][i]+data[3][i])/3-matypical20[i])/(sum);
         else 
         cci[i]=1000000000;
+        bollingerBand[0][i]=matypical20[i]-2*sqrt(sum2);
+        bollingerBand[1][i]=matypical20[i]+2*sqrt(sum2);
     }
     for(int i=0;i<data[0].size();i++){
         // cout<<dates[i].substr(11)<<"\n";
@@ -121,7 +130,7 @@ int main(){
     //         else out<<"Close"+to_string(i)<<",";
     //     }
     // }
-    out<<"RSI,MACD,CCI,DayOfWeek,DayOfMonth\n";
+    out<<"RSI,MACD,CCI,BollingerBandL,BollingerBandU,DayOfWeek,DayOfMonth\n";
     for(int i=0;i<dates.size();i++){
         out<<dates[i]<<",";
         out<<dateTimeToMinuteTime(dates[i])<<",";
@@ -135,7 +144,7 @@ int main(){
         m=stoi(dates[i].substr(5,2));
         y=stoi(dates[i].substr(0,4));
         int dow=dayofweek(d,m,y);
-        out<<rsi[i]<<","<<macd[i]<<","<<cci[i]<<",";
+        out<<rsi[i]<<","<<macd[i]<<","<<cci[i]<<","<<bollingerBand[0][i]<<","<<bollingerBand[1][i]<<",";
         out<<dow<<","<<d<<"\n";
     }
     return 0;
