@@ -21,11 +21,11 @@ from tensorflow.keras.layers import *
 # import talib
 
 batch_size = 32
-seq_len = 12
-d_k = 64
-d_v = 64
-n_heads = 6
-ff_dim = 64
+seq_len = 36
+d_k = 32
+d_v = 32
+n_heads = 3
+ff_dim = 32
 
 class Time2Vector(Layer):
   def __init__(self, seq_len, **kwargs):
@@ -177,7 +177,7 @@ def create_model():
   attn_layer3 = TransformerEncoder(d_k, d_v, n_heads, ff_dim)
 
   '''Construct model'''
-  in_seq = Input(shape=(seq_len, 13))
+  in_seq = Input(shape=(seq_len, 10))
   x = time_embedding(in_seq)
   x = Concatenate(axis=-1)([in_seq, x])
   x = attn_layer1((x, x, x))
@@ -185,12 +185,12 @@ def create_model():
   x = attn_layer3((x, x, x))
   x = GlobalAveragePooling1D(data_format='channels_first')(x)
 #   x = Dropout(0.1)(x)
-  x = Dense(64)(x)
+#   x = Dense(64)(x)
 #   x = Dropout(0.1)(x)
   out = Dense(1)(x)
 
   model = Model(inputs=in_seq, outputs=out)
-  model.compile(loss='mse', optimizer='adam', metrics=['mae', 'mape'])
+  model.compile(loss='mse', optimizer='adam')
   return model
 
 
@@ -224,26 +224,30 @@ def sign_penalty(y_true, y_pred):
 def GetPredictions(paramtype,ticker):
     paramtypetostringmap = {}
     PointSetSize=seq_len+1
-    paramtypetostringmap[0]='TimeOfday'
-    paramtypetostringmap[1]='Open'
-    paramtypetostringmap[2]='High'
-    paramtypetostringmap[3]='Low'
-    paramtypetostringmap[4]='Close'
-    paramtypetostringmap[5]='Volume'
+    # paramtypetostringmap[0]='TimeOfday'
+    paramtypetostringmap[0]='Open'
+    paramtypetostringmap[1]='High'
+    paramtypetostringmap[2]='Low'
+    paramtypetostringmap[3]='Close'
+    paramtypetostringmap[4]='Volume'
     #how much history to see
     # for j in range(0,1):
     #     paramtypetostringmap[6+3*j]='Low'+str(j)
     #     paramtypetostringmap[7+3*j]='High'+str(j)
     #     paramtypetostringmap[8+3*j]='Close'+str(j)
-    paramtypetostringmap[6]='RSI'
-    paramtypetostringmap[7]='MACD'
-    paramtypetostringmap[8]='CCI'
-    paramtypetostringmap[9]='BollingerBandL'
-    paramtypetostringmap[10]='BollingerBandU'
-    paramtypetostringmap[11]='DayOfWeek'
-    paramtypetostringmap[12]='DayOfMonth'
+    paramtypetostringmap[5]='RSI'
+    paramtypetostringmap[6]='MACD'
+    paramtypetostringmap[7]='CCI'
+    paramtypetostringmap[8]='BollingerBandL'
+    paramtypetostringmap[9]='BollingerBandU'
+    # paramtypetostringmap[11]='DayOfWeek'
+    # paramtypetostringmap[12]='DayOfMonth'
     data = pd.read_csv(ticker+'parameters.csv', date_parser = True)
     data.tail()
+    # data=data.drop('TimeOfday',axis=1)
+    data=data.drop('DayOfWeek',axis=1)
+    data=data.drop('DayOfMonth',axis=1)
+    data=data.drop('TimeOfday',axis=1)
     data_training = data[data['Date']<'2020-11-30 09:30:00-05:00'].copy()
     data_test = data[data['Date']>='2020-11-30 09:30:00-05:00'].copy()
     data_training = data_training.drop(['Date'], axis = 1)
@@ -275,7 +279,7 @@ def GetPredictions(paramtype,ticker):
 
     history = model.fit(X_train, y_train, 
                     batch_size=batch_size, 
-                    epochs=5, 
+                    epochs=100, 
                     callbacks=[callback],
                     validation_split=0.1)  
 
