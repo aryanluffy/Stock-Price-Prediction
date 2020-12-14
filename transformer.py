@@ -185,9 +185,9 @@ def create_model():
   x = attn_layer3((x, x, x))
   x = GlobalAveragePooling1D(data_format='channels_first')(x)
 #   x = Dropout(0.1)(x)
-  x = Dense(64, activation='relu')(x)
+  x = Dense(64)(x)
 #   x = Dropout(0.1)(x)
-  out = Dense(1, activation='linear')(x)
+  out = Dense(1)(x)
 
   model = Model(inputs=in_seq, outputs=out)
   model.compile(loss='mse', optimizer='adam', metrics=['mae', 'mape'])
@@ -279,11 +279,11 @@ def GetPredictions(paramtype,ticker):
                     callbacks=[callback],
                     validation_split=0.1)  
 
-    # model = tf.keras.models.load_model('/content/Transformer+TimeEmbedding.hdf5',
-    #                                custom_objects={'Time2Vector': Time2Vector, 
-    #                                                'SingleAttention': SingleAttention,
-    #                                                'MultiAttention': MultiAttention,
-    #                                                'TransformerEncoder': TransformerEncoder})
+    model = tf.keras.models.load_model('Transformer+TimeEmbedding.hdf5',
+                                   custom_objects={'Time2Vector': Time2Vector, 
+                                                   'SingleAttention': SingleAttention,
+                                                   'MultiAttention': MultiAttention,
+                                                   'TransformerEncoder': TransformerEncoder})
 
     past_60_days = data_training.tail(PointSetSize)
     # print(len(data_test))
