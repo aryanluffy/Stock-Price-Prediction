@@ -279,7 +279,7 @@ def GetPredictions(paramtype,ticker):
 
     history = model.fit(X_train, y_train, 
                     batch_size=batch_size, 
-                    epochs=30, 
+                    epochs=100, 
                     callbacks=[callback],
                     validation_split=0.1)  
 
