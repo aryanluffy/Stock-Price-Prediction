@@ -130,7 +130,7 @@ int main(){
     //         else out<<"Close"+to_string(i)<<",";
     //     }
     // }
-    out<<"RSI,MACD,CCI,BollingerBandL,BollingerBandU,DayOfWeek,DayOfMonth\n";
+    out<<"RSI,MACD,CCI,BollingerBandL,BollingerBandU,Month,DayOfWeek,DayOfMonth\n";
     for(int i=0;i<dates.size();i++){
         out<<dates[i]<<",";
         out<<dateTimeToMinuteTime(dates[i])<<",";
@@ -145,6 +145,7 @@ int main(){
         y=stoi(dates[i].substr(0,4));
         int dow=dayofweek(d,m,y);
         out<<rsi[i]<<","<<macd[i]<<","<<cci[i]<<","<<bollingerBand[0][i]<<","<<bollingerBand[1][i]<<",";
+        out<<dates[i].substr(5,2)<<",";
         out<<dow<<","<<d<<"\n";
     }
     return 0;

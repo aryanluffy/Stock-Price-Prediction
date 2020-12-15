@@ -15,10 +15,10 @@ asecret = 'ufy147vru1pl2die5zoomfe5a6vzw3vw'
 
 kite = KiteConnect(api_key=ak)
 # request_tkn = input("[*] Enter Your Request Token Here : ")
-# data = kite.generate_session('g2w4UsJc8edRScoO2eWTqYMzTEilymBk', api_secret=asecret)
+# data = kite.generate_session('jD63ZqjMs6qB1aClg4bdsCoA7AhlpvHo', api_secret=asecret)
 # kite.set_access_token(data["access_token"])
 # print(data['access_token'])
-kite.set_access_token('nowmaG203yyE2Mn7GsnPA8xWBCxrU5B3')
+kite.set_access_token('9EpoUKXlkyFnbqG0MaN4051bHvPzsW1A')
 
 savedata = {}
 
@@ -42,8 +42,8 @@ while True:
         print(name)
 
         token = trd_portfolio[name]['token']
-        from_date = datetime.date(2020, 10, 22)
-        to_date = datetime.date(2020, 12, 7)
+        from_date = datetime.date(2018, 6, 22)
+        to_date = datetime.date(2018, 8, 21)
 
         main_record = []
         while True:

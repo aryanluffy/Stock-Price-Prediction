@@ -240,8 +240,9 @@ def GetPredictions(paramtype,ticker):
     paramtypetostringmap[8]='CCI'
     paramtypetostringmap[9]='BollingerBandL'
     paramtypetostringmap[10]='BollingerBandU'
-    paramtypetostringmap[11]='DayOfWeek'
-    paramtypetostringmap[12]='DayOfMonth'
+    paramtypetostringmap[11]='Month'
+    paramtypetostringmap[12]='DayOfWeek'
+    paramtypetostringmap[13]='DayOfMonth'
     data = pd.read_csv(ticker+'parameters.csv', date_parser = True)
     data.tail()
     # data=data.drop('TimeOfday',axis=1)
