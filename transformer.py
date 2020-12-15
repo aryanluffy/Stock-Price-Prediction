@@ -21,7 +21,7 @@ from tensorflow.keras.layers import *
 # import talib
 
 batch_size = 32
-seq_len = 20
+seq_len = 30
 d_k = 48
 d_v = 48
 n_heads = 6
