@@ -177,7 +177,7 @@ def create_model():
   # attn_layer3 = TransformerEncoder(d_k, d_v, n_heads, ff_dim)
 
   '''Construct model'''
-  in_seq = Input(shape=(seq_len, 13))
+  in_seq = Input(shape=(seq_len, 14))
   x = time_embedding(in_seq)
   x = Concatenate(axis=-1)([in_seq, x])
   x = attn_layer1((x, x, x))
