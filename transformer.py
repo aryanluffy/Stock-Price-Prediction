@@ -22,10 +22,10 @@ from tensorflow.keras.layers import *
 
 batch_size = 32
 seq_len = 20
-d_k = 32
-d_v = 32
-n_heads = 3
-ff_dim = 32
+d_k = 64
+d_v = 64
+n_heads = 6
+ff_dim = 64
 
 class Time2Vector(Layer):
   def __init__(self, seq_len, **kwargs):
