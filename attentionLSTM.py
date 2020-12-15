@@ -62,8 +62,9 @@ def GetPredictions(paramtype,ticker):
     paramtypetostringmap[8]='CCI'
     paramtypetostringmap[9]='BollingerBandL'
     paramtypetostringmap[10]='BollingerBandU'
-    paramtypetostringmap[11]='DayOfWeek'
-    paramtypetostringmap[12]='DayOfMonth'
+    paramtypetostringmap[11]='Month'
+    paramtypetostringmap[12]='DayOfWeek'
+    paramtypetostringmap[13]='DayOfMonth'
     data = pd.read_csv(ticker+'parameters.csv', date_parser = True)
     data.tail()
     data_training = data[data['Date']<'2020-11-30 09:30:00-05:00'].copy()
@@ -99,7 +100,7 @@ def GetPredictions(paramtype,ticker):
     regressor.compile(optimizer='adam', loss = 'mean_squared_error')
     es = EarlyStopping(monitor='val_loss',patience=1000,restore_best_weights=True)
     #30 were good 
-    regressor.fit(X_train, y_train,validation_split=0.1,epochs=200, batch_size=30,callbacks=[es])
+    regressor.fit(X_train, y_train,validation_split=0.1,epochs=30, batch_size=30,callbacks=[es])
     past_60_days = data_training.tail(PointSetSize)
     # print(len(data_test))
     df = past_60_days.append(data_test, ignore_index = True)
