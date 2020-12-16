@@ -67,8 +67,8 @@ def GetPredictions(paramtype,ticker):
     paramtypetostringmap[13]='DayOfMonth'
     data = pd.read_csv(ticker+'parameters.csv', date_parser = True)
     data.tail()
-    data_training = data[data['Date']<'2020-11-30 09:30:00-05:00'].copy()
-    data_test = data[data['Date']>='2020-11-30 09:30:00-05:00'].copy()
+    data_training = data[data['Date']<'2019-12-30 09:15:00+05:30'].copy()
+    data_test = data[data['Date']>='2019-12-30 09:15:00+05:30'].copy()
     data_training = data_training.drop(['Date'], axis = 1)
     minval=1e9
     #Get min-max for paramtype
@@ -100,7 +100,7 @@ def GetPredictions(paramtype,ticker):
     regressor.compile(optimizer='adam', loss = 'mean_squared_error')
     es = EarlyStopping(monitor='val_loss',patience=1000,restore_best_weights=True)
     #30 were good 
-    regressor.fit(X_train, y_train,validation_split=0.1,epochs=30, batch_size=30,callbacks=[es])
+    regressor.fit(X_train, y_train,validation_split=0.01,epochs=100, batch_size=30,callbacks=[es])
     past_60_days = data_training.tail(PointSetSize)
     # print(len(data_test))
     df = past_60_days.append(data_test, ignore_index = True)
