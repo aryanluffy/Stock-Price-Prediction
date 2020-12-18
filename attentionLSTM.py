@@ -66,7 +66,7 @@ def GetPredictions(paramtype,ticker):
     y_train = []
     for i in range(PointSetSize, data_training.shape[0]):
         X_train.append(data_training[i-PointSetSize:i-1])
-        y_train.append(data_training[i,1])
+        y_train.append(data_training[i,100])
     Parameters=[]
     for x in range(0,len(paramtypetostringmap)):
         Parameters.append(paramtypetostringmap[x])
@@ -99,7 +99,7 @@ def GetPredictions(paramtype,ticker):
     y_test = []
     for i in range(PointSetSize, inputs.shape[0]):
         X_test.append(inputs[i-PointSetSize:i-1])
-        y_test.append(inputs[i, 1])
+        y_test.append(inputs[i, 100])
 
     X_test, y_test = np.array(X_test), np.array(y_test)
     print("kami sama arigato")
