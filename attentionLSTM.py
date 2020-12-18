@@ -51,8 +51,8 @@ def GetPredictions(paramtype,ticker):
         paramtypetostringmap[i]='feature_'+str(i)
     data = pd.read_csv(ticker+'parameters.csv', date_parser = True)
     data.tail()
-    data_training = data[data['Date']<'2019-12-30 09:15:00+05:30'].copy()
-    data_test = data[data['Date']>='2019-12-30 09:15:00+05:30'].copy()
+    data_training = data[data['Date']<'2020-11-20 09:15:00+05:30'].copy()
+    data_test = data[data['Date']>='2020-11-20 09:15:00+05:30'].copy()
     data_training = data_training.drop(['Date'], axis = 1)
     minval=1e9
     #Get min-max for paramtype
