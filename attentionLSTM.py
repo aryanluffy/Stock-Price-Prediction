@@ -100,7 +100,7 @@ def GetPredictions(paramtype,ticker):
     regressor.compile(optimizer='adam', loss = 'mean_squared_error')
     es = EarlyStopping(monitor='val_loss',patience=1000,restore_best_weights=True)
     #30 were good 
-    regressor.fit(X_train, y_train,validation_split=0.01,epochs=100, batch_size=30,callbacks=[es])
+    regressor.fit(X_train, y_train,validation_split=0.01,epochs=10, batch_size=30,callbacks=[es])
     past_60_days = data_training.tail(PointSetSize)
     # print(len(data_test))
     df = past_60_days.append(data_test, ignore_index = True)
