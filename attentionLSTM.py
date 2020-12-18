@@ -46,9 +46,9 @@ def sign_penalty(y_true, y_pred):
 def GetPredictions(paramtype,ticker):
     paramtypetostringmap = {}
     PointSetSize=12
-    paramtypetostringmap[0]='Date'
-    for i in range(1,135):
-        paramtypetostringmap[i]='feature_'+str(i)
+    # paramtypetostringmap[0]='Date'
+    for i in range(0,134):
+        paramtypetostringmap[i]='feature_'+str(i+1)
     data = pd.read_csv(ticker+'.csv', date_parser = True)
     data.tail()
     data_training = data[data['Date']<'2020-11-20 09:15:00+05:30'].copy()
