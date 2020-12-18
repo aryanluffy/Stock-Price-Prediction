@@ -57,7 +57,7 @@ def GetPredictions(paramtype,ticker):
     minval=1e9
     #Get min-max for paramtype
     for ind in data_training.index:
-        minval=min(minval,data_training['feature_101'][ind])
+        minval=min(minval,data_training['feature_31'][ind])
     scaler = MinMaxScaler()
     data_training = scaler.fit_transform(data_training)
     # print(data_training)
@@ -66,7 +66,7 @@ def GetPredictions(paramtype,ticker):
     y_train = []
     for i in range(PointSetSize, data_training.shape[0]):
         X_train.append(data_training[i-PointSetSize:i-1])
-        y_train.append(data_training[i,100])
+        y_train.append(data_training[i,30])
     Parameters=[]
     for x in range(0,len(paramtypetostringmap)):
         Parameters.append(paramtypetostringmap[x])
@@ -84,7 +84,7 @@ def GetPredictions(paramtype,ticker):
     regressor.compile(optimizer='adam', loss = 'mean_squared_error')
     es = EarlyStopping(monitor='val_loss',patience=1000,restore_best_weights=True)
     #30 were good 
-    regressor.fit(X_train, y_train,validation_split=0.0017,epochs=100, batch_size=30,callbacks=[es])
+    regressor.fit(X_train, y_train,validation_split=0.002,epochs=100, batch_size=30,callbacks=[es])
     past_60_days = data_training.tail(PointSetSize)
     # print(len(data_test))
     df = past_60_days.append(data_test, ignore_index = True)
@@ -99,20 +99,20 @@ def GetPredictions(paramtype,ticker):
     y_test = []
     for i in range(PointSetSize, inputs.shape[0]):
         X_test.append(inputs[i-PointSetSize:i-1])
-        y_test.append(inputs[i, 100])
+        y_test.append(inputs[i, 30])
 
     X_test, y_test = np.array(X_test), np.array(y_test)
     print("kami sama arigato")
     print(len(X_test))
     y_pred = regressor.predict(X_test)
     scaler.scale_
-    scale = 1/scaler.scale_[100]
+    scale = 1/scaler.scale_[30]
 
     y_pred = y_pred*scale+minval
     y_test = y_test*scale+minval
     d_pred=[]
     d_test=[]
-    for i in range(60,len(y_pred)):
+    for i in range(0,len(y_pred)):
         d_pred.append(y_pred[i]-y_test[i-1])
         d_test.append(y_test[i]-y_test[i-1])
     # Visualising the results
