@@ -49,7 +49,7 @@ def GetPredictions(paramtype,ticker):
     paramtypetostringmap[0]='Date'
     for i in range(1,135):
         paramtypetostringmap[i]='feature_'+str(i)
-    data = pd.read_csv(ticker+'parameters.csv', date_parser = True)
+    data = pd.read_csv(ticker+'.csv', date_parser = True)
     data.tail()
     data_training = data[data['Date']<'2020-11-20 09:15:00+05:30'].copy()
     data_test = data[data['Date']>='2020-11-20 09:15:00+05:30'].copy()
