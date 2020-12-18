@@ -51,13 +51,13 @@ def GetPredictions(paramtype,ticker):
         paramtypetostringmap[i]='feature_'+str(i+1)
     data = pd.read_csv(ticker+'.csv', date_parser = True)
     data.tail()
-    data_training = data[data['Date']<'2020-11-20 09:15:00+05:30'].copy()
-    data_test = data[data['Date']>='2020-11-20 09:15:00+05:30'].copy()
+    data_training = data[data['Date']<'2020-12-10 09:15:00+05:30'].copy()
+    data_test = data[data['Date']>='2020-12-10 09:15:00+05:30'].copy()
     data_training = data_training.drop(['Date'], axis = 1)
     minval=1e9
     #Get min-max for paramtype
     for ind in data_training.index:
-        minval=min(minval,data_training[paramtypetostringmap[1]][ind])
+        minval=min(minval,data_training['feature_31'][ind])
     scaler = MinMaxScaler()
     data_training = scaler.fit_transform(data_training)
     # print(data_training)
@@ -84,7 +84,7 @@ def GetPredictions(paramtype,ticker):
     regressor.compile(optimizer='adam', loss = 'mean_squared_error')
     es = EarlyStopping(monitor='val_loss',patience=1000,restore_best_weights=True)
     #30 were good 
-    regressor.fit(X_train, y_train,validation_split=0.01,epochs=10, batch_size=30,callbacks=[es])
+    regressor.fit(X_train, y_train,validation_split=0.01,epochs=100, batch_size=30,callbacks=[es])
     past_60_days = data_training.tail(PointSetSize)
     # print(len(data_test))
     df = past_60_days.append(data_test, ignore_index = True)
@@ -106,7 +106,7 @@ def GetPredictions(paramtype,ticker):
     print(len(X_test))
     y_pred = regressor.predict(X_test)
     scaler.scale_
-    scale = 1/scaler.scale_[1]
+    scale = 1/scaler.scale_[30]
 
     y_pred = y_pred*scale+minval
     y_test = y_test*scale+minval
