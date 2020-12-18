@@ -45,7 +45,7 @@ def sign_penalty(y_true, y_pred):
 #paramtype corresponds to open,low,high
 def GetPredictions(paramtype,ticker):
     paramtypetostringmap = {}
-    PointSetSize=12
+    PointSetSize=20
     # paramtypetostringmap[0]='Date'
     for i in range(0,134):
         paramtypetostringmap[i]='feature_'+str(i+1)
