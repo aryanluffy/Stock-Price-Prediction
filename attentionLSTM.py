@@ -57,7 +57,7 @@ def GetPredictions(paramtype,ticker):
     minval=1e9
     #Get min-max for paramtype
     for ind in data_training.index:
-        minval=min(minval,data_training['feature_31'][ind])
+        minval=min(minval,data_training['feature_101'][ind])
     scaler = MinMaxScaler()
     data_training = scaler.fit_transform(data_training)
     # print(data_training)
@@ -84,7 +84,7 @@ def GetPredictions(paramtype,ticker):
     regressor.compile(optimizer='adam', loss = 'mean_squared_error')
     es = EarlyStopping(monitor='val_loss',patience=1000,restore_best_weights=True)
     #30 were good 
-    regressor.fit(X_train, y_train,validation_split=0.01,epochs=100, batch_size=30,callbacks=[es])
+    regressor.fit(X_train, y_train,validation_split=0.005,epochs=100, batch_size=30,callbacks=[es])
     past_60_days = data_training.tail(PointSetSize)
     # print(len(data_test))
     df = past_60_days.append(data_test, ignore_index = True)
@@ -106,7 +106,7 @@ def GetPredictions(paramtype,ticker):
     print(len(X_test))
     y_pred = regressor.predict(X_test)
     scaler.scale_
-    scale = 1/scaler.scale_[30]
+    scale = 1/scaler.scale_[100]
 
     y_pred = y_pred*scale+minval
     y_test = y_test*scale+minval
