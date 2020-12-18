@@ -46,25 +46,9 @@ def sign_penalty(y_true, y_pred):
 def GetPredictions(paramtype,ticker):
     paramtypetostringmap = {}
     PointSetSize=12
-    paramtypetostringmap[0]='TimeOfday'
-    paramtypetostringmap[1]='Open'
-    paramtypetostringmap[2]='High'
-    paramtypetostringmap[3]='Low'
-    paramtypetostringmap[4]='Close'
-    paramtypetostringmap[5]='Volume'
-    #how much history to see
-    # for j in range(0,1):
-    #     paramtypetostringmap[6+3*j]='Low'+str(j)
-    #     paramtypetostringmap[7+3*j]='High'+str(j)
-    #     paramtypetostringmap[8+3*j]='Close'+str(j)
-    paramtypetostringmap[6]='RSI'
-    paramtypetostringmap[7]='MACD'
-    paramtypetostringmap[8]='CCI'
-    paramtypetostringmap[9]='BollingerBandL'
-    paramtypetostringmap[10]='BollingerBandU'
-    paramtypetostringmap[11]='Month'
-    paramtypetostringmap[12]='DayOfWeek'
-    paramtypetostringmap[13]='DayOfMonth'
+    paramtypetostringmap[0]='Date'
+    for i in range(1,135):
+        paramtypetostringmap[i]='feature_'+str(i)
     data = pd.read_csv(ticker+'parameters.csv', date_parser = True)
     data.tail()
     data_training = data[data['Date']<'2019-12-30 09:15:00+05:30'].copy()
