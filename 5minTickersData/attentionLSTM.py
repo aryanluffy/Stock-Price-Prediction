@@ -126,7 +126,7 @@ def GetPredictions(paramtype,ticker):
     plt.show()
     cnt=0
     x=0
-    for i in range(10,len(y_test)):
+    for i in range(20,len(y_test)):
         # print(str(y_test[i])+str(y_pred[i]))
         x+=abs(1-y_pred[i]/y_test[i])
         cnt+=1

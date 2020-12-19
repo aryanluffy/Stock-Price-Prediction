@@ -168,11 +168,16 @@ int main(){
     }
     out<<"feature_134\n";
     vector <double> scale_down(13,1);
+    map <string,string> monthbegin;
+    for(auto x:mp[3]){
+        if(monthbegin.find(x.first.substr(0,7))==monthbegin.end())
+        monthbegin[x.first.substr(0,7)]=x.first;
+    }
     for(auto x:mp[3]){
         bool flag=true;
         for(int i=0;i<13;i++)if(mp[i].find(x.first)==mp[i].end())flag=false;
         if(flag==0)continue;
-        if(dateTimeToMinuteTime(x.first)==555){
+        if(monthbegin[x.first.substr(0,7)]==x.first){
             for(int i=0;i<13;i++)scale_down[i]=mp[i][x.first][0];
         }
         out<<x.first<<",";
