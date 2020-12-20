@@ -11,7 +11,7 @@ interval = "minute"
 repeatation = 1
 
 ak = 'mewmepcd9vjx9acz'
-asecret = 'dswigcj932ahusvba2uk1iia7j6v6xnx'
+asecret = 'i9edxr8novbpge4qo8co25ncah4ye4wu'
 
 
 kite = KiteConnect(api_key=ak)
@@ -75,7 +75,7 @@ while True:
                 str(ind['volume'])+'\n')
             curr_month=next_month
             curr_year=next_year
-            if curr_month==1 and next_year==2021:
+            if curr_month==1 and next_year==2020:
                 break
             time.sleep(1)
         # print(kk)

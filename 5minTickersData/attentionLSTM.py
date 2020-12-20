@@ -51,13 +51,13 @@ def GetPredictions(paramtype,ticker):
         paramtypetostringmap[i]='feature_'+str(i+1)
     data = pd.read_csv(ticker, date_parser = True)
     data.tail()
-    data_training = data[data['Date']<'2020-12-10 09:15:00+05:30'].copy()
-    data_test = data[data['Date']>='2020-12-10 09:15:00+05:30'].copy()
+    data_training = data[data['Date']<'2020-01-16 09:15:00+05:30'].copy()
+    data_test = data[data['Date']>='2020-01-16 09:15:00+05:30'].copy()
     data_training = data_training.drop(['Date'], axis = 1)
     minval=1e9
     #Get min-max for paramtype
     for ind in data_training.index:
-        minval=min(minval,data_training['feature_31'][ind])
+        minval=min(minval,data_training['feature_101'][ind])
     scaler = MinMaxScaler()
     data_training = scaler.fit_transform(data_training)
     # print(data_training)
@@ -66,7 +66,7 @@ def GetPredictions(paramtype,ticker):
     y_train = []
     for i in range(PointSetSize, data_training.shape[0]):
         X_train.append(data_training[i-PointSetSize:i-1])
-        y_train.append(data_training[i,30])
+        y_train.append(data_training[i,100])
     Parameters=[]
     for x in range(0,len(paramtypetostringmap)):
         Parameters.append(paramtypetostringmap[x])
@@ -99,22 +99,22 @@ def GetPredictions(paramtype,ticker):
     y_test = []
     for i in range(PointSetSize, inputs.shape[0]):
         X_test.append(inputs[i-PointSetSize:i-1])
-        y_test.append(inputs[i, 30])
+        y_test.append(inputs[i, 100])
 
     X_test, y_test = np.array(X_test), np.array(y_test)
     print("kami sama arigato")
     print(len(X_test))
     y_pred = regressor.predict(X_test)
     scaler.scale_
-    scale = 1/scaler.scale_[30]
+    scale = 1/scaler.scale_[100]
 
     y_pred = y_pred*scale+minval
     y_test = y_test*scale+minval
     d_pred=[]
     d_test=[]
     for i in range(0,len(y_pred)):
-        d_pred.append(y_pred[i]-y_test[i-1])
-        d_test.append(y_test[i]-y_test[i-1])
+        d_pred.append(1000*y_pred[i]-1000*y_test[i-1])
+        d_test.append(1000*y_test[i]-1000*y_test[i-1])
     # Visualising the results
     plt.figure(figsize=(14,5))
     plt.plot(d_test, color = 'red', label = 'Real Stock Price')
@@ -126,7 +126,7 @@ def GetPredictions(paramtype,ticker):
     plt.show()
     cnt=0
     x=0
-    for i in range(20,len(y_test)):
+    for i in range(0,len(y_test)):
         # print(str(y_test[i])+str(y_pred[i]))
         x+=abs(1-y_pred[i]/y_test[i])
         cnt+=1

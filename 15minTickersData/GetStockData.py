@@ -11,7 +11,7 @@ interval = "minute"
 repeatation = 1
 
 ak = 'mewmepcd9vjx9acz'
-asecret = 'dswigcj932ahusvba2uk1iia7j6v6xnx'
+asecret = 'i9edxr8novbpge4qo8co25ncah4ye4wu'
 
 
 kite = KiteConnect(api_key=ak)
@@ -23,21 +23,7 @@ print(data['access_token'])
 
 savedata = {}
 
-trd_portfolio = {'BAJAJFINSV':{'token':4268801},\
-                'ICICIBANK':{'token':1270529},\
-                'AXISBANK':{'token':1510401},\
-                'HDFCBANK':{'token':341249},\
-                'KOTAKBANK':{'token':492033},\
-                'L&T':{'token':2939649},\
-                'SBIN':{'token':779521},\
-                'WIPRO':{'token':969473},\
-                'AIRTEL':{'token':2714625},\
-                'BANDHANBNK':{'token':579329},\
-                'M&MFIN':{'token':3400961},\
-                'CHOLAFIN':{'token':175361},\
-                'BAJFINANCE':{'token':81153},\
-                'REIANCE':{'token':738561}
-                }
+trd_portfolio = {'BAJAJFINSV':{'token':4268801}}
 
 def myconverter(o):
     if isinstance(o, datetime.datetime):
@@ -75,7 +61,7 @@ while True:
                 str(ind['volume'])+'\n')
             curr_month=next_month
             curr_year=next_year
-            if curr_month==1 and next_year==2021:
+            if curr_month==1 and next_year==2020:
                 break
             time.sleep(1)
         # print(kk)
